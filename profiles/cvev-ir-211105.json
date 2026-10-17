@@ -1,0 +1,38 @@
+{
+  "profile": "cvev-ir-211105",
+  "firmware": "CV_E.GEN.S5W_M.V001.001.211105",
+  "product": "wp_daudioplus_cvev_ir",
+  "fastboot_product": "TCC803X_ANDROID_WIDEPE",
+  "android_api": 19,
+  "cpu": "ARM32 Telechips TCC803x",
+  "kernel": "3.18.24-tcc",
+  "originals": {
+    "libCarPlayAudio.so": {
+      "md5": "fca4c75b1ae39a88b83912f083ce7dda",
+      "sha256": "77aad93fe8ec7ec93974102a07f1e5fdc3a0259e501cde251c6128ac6fa0790c",
+      "bytes": 38312
+    },
+    "HKMC_BtSettings.odex": {
+      "md5": "87b220ddaacb926221e25cdb2db8775a",
+      "sha256": "f470d8c6f9a0b239ae85cc3b64f5784881b118d584c59d520f4e12abde45b7ef",
+      "bytes": 2579344
+    },
+    "HKMC_BtSettings.apk": {
+      "md5": "b4c13d68752f6561eabbc79dc68eddb5",
+      "sha256": "c12a4441ee6670b01c60a926a322bd798535fd89310c3ba2bdcfe3cc33d1f878",
+      "bytes": 6015145
+    },
+    "featurexml.cfg": {
+      "md5": "debef8736658722186aa9a3ac7731f98",
+      "sha256": "3ad98528b8d3dd0e132e341a8d1d716a6c47d384f7ef4e3961f91ce6f2909634",
+      "bytes": 2081
+    },
+    "libCarPlay.so": {
+      "md5": "3104b375dc8d2d9c02aca7bec9f4db72",
+      "sha256": "b16935fb3601b7d486067f07dcc99d69c33a7e6702ff7ef15be56321f4545097",
+      "bytes": 87620
+    }
+  },
+  "original_boot_sha256": "dc4ec8bd8cef335515fda4a11b723b1155e169f4d90ddc79a499cb00c5bacc0b",
+  "all_offsets_firmware_specific": true
+}
