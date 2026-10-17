@@ -1,0 +1,39 @@
+{
+  "window_start": "2026-10-17T01:32:25.029659+08:00",
+  "window_end": "2026-10-17T01:32:49.249737+08:00",
+  "samples": 25,
+  "cpu_mean_percent": 17.02,
+  "cpu_peak_percent": 24.94,
+  "dipo_one_core_mean_percent": 0.68,
+  "controller_one_core_percent": 0.0,
+  "controller_rss_mib": 53.05,
+  "dipo_rss_mib": 44.55,
+  "free_memory_mib": 2258.79,
+  "rssi_min_dbm": -45,
+  "rssi_max_dbm": -45,
+  "tcp_delta": {
+    "RetransSegs": 0,
+    "OutSegs": 0,
+    "InSegs": 0,
+    "InErrs": 0,
+    "OutRsts": 0,
+    "TCPTimeouts": 0,
+    "TCPFastRetrans": 0,
+    "TCPLostRetransmit": 0,
+    "TCPAbortOnTimeout": 0,
+    "TCPMemoryPressures": 0
+  },
+  "driver_delta": {
+    "reinit": 0,
+    "reset": 0,
+    "txframe": 2,
+    "txretrans": 0,
+    "txfail": 0,
+    "rxframe": 4,
+    "rxerror": 0,
+    "txnoassoc": 0,
+    "rxcrc": 1,
+    "rxnobuf": 0
+  },
+  "context": "Connected CarPlay with dual diagnostics active; not a saturated stream stress test"
+}

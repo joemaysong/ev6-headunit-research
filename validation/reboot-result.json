@@ -1,0 +1,15 @@
+{
+  "time": "2026-10-17T02:19:38.949564+08:00",
+  "new_kernel_boot": true,
+  "real_init_service": true,
+  "genuine_carplay_reconnected_without_manual_bluetooth_or_cp_command": true,
+  "elapsed_until_adb_observation_sec": 45.07,
+  "controller_sha256": "b120f2e43e82497e6c8a2a3b2f1bbce4b5417931d1817f098ea4ad93c540d569",
+  "prior_boot_command_and_ack_retired": true,
+  "ignition_quickboot_tested": false,
+  "post_reboot_disconnect_ack_matches_new_ui_command": true,
+  "new_ui_nonce_lower_than_previous_boot_nonce": true,
+  "manual_pause_held_during_observation": true,
+  "post_reboot_true_ui_disconnect_passed": true,
+  "post_reboot_real_ui_disconnect_and_resume_passed": true
+}

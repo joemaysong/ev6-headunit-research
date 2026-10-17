@@ -1,0 +1,15 @@
+{
+  "version": "2026.10.17-final2",
+  "controller_sha256": "a0c737fff0c0dc8cb53f8f3cca3d01119284d82b65f9e69983a1635f7ea53124",
+  "native_prompt_after_both_sides_cleared": true,
+  "x_to_15pro_seconds": 9.307,
+  "15pro_to_x_seconds": 2.78,
+  "prior_15pro_to_x_seconds": 30.154,
+  "both_directions_operable": true,
+  "ordinary_manual_stop_stayed_paused": true,
+  "same_row_reconnect_passed": true,
+  "audio_and_tail_user_confirmed": true,
+  "mac_connection_commands_during_user_tests": 0,
+  "new_kernel_reboot_of_this_controller_tested": false,
+  "native_audio_ui_backend_unchanged": true
+}

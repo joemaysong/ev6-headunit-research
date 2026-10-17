@@ -1,0 +1,8 @@
+{
+  "original_md5": "3104b375dc8d2d9c02aca7bec9f4db72",
+  "candidate_md5": "2ae0331ea48e733d9a0bba91a9606088",
+  "candidate_sha256": "75822618993bf510ee63c6befc01317d4456a5c63ee5ce3ecc1603816d37281a",
+  "fallback": "OEM TccCarPlayInternal_ClearSession only when session exists and control identifier is absent",
+  "normal_identifier_disconnect_unchanged": true,
+  "deployed": false
+}

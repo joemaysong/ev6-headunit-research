@@ -1,0 +1,8 @@
+{
+  "synthetic_offline_tests": 15,
+  "python_sources_parsed": 26,
+  "shell_sources_checked": 4,
+  "no_vehicle_used_by_offline_tests": true,
+  "public_package_build_in_temporary_directory_passed": true,
+  "generated_binaries_and_temporary_signing_identity_not_published": true
+}

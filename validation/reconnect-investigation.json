@@ -1,0 +1,38 @@
+{
+  "release": "2026.10.17-final2",
+  "status": "intermittent_existing_pairing_reconnect_unresolved",
+  "runtime_changed_during_investigation": false,
+  "failed_case": {
+    "selected_phone": "iPhone 15 Pro",
+    "pairing_retained": true,
+    "native_qualification_ready": true,
+    "original_bluetooth_request_accepted": true,
+    "selected_learned_station_associated": false,
+    "other_learned_station_associated": true,
+    "new_control_http_issued": false,
+    "wrong_phone_connected": false
+  },
+  "user_bluetooth_reconnect": {
+    "wifi_was_already_enabled": true,
+    "pairing_retained": true,
+    "automatic_picture_and_operable_apps_confirmed": true,
+    "complete_phone_trace_available": false
+  },
+  "subsequent_car_button_cycle": {
+    "phone_wifi_or_bluetooth_touched": false,
+    "host_connection_commands": 0,
+    "request_to_native_session_ms": 11836,
+    "phone_join_success_observed": true,
+    "phone_dhcp_bound_observed": true,
+    "selected_txt_identity_verified": true,
+    "selected_learned_station_verified": true,
+    "associated_station_count_at_control": 2,
+    "fresh_native_qualification_at_control": false,
+    "control_http_status": 200,
+    "genuine_native_session_observed": true,
+    "operable_apps_user_confirmed": true
+  },
+  "definitive_cause_established": false,
+  "permanent_repair_claimed": false,
+  "raw_logs_or_identifiers_included": false
+}

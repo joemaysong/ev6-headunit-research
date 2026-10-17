@@ -1,0 +1,10 @@
+{
+  "public_source_build_passed": true,
+  "build_used_environment_tool_paths": true,
+  "generated_artifacts_and_signing_identity_removed_with_temporary_directory": true,
+  "checks": [
+    "FINAL_CONTROLLER_SELFTEST_PASSED=2410",
+    "WIFI_REPLY_COMPARISON_CHECKS=93",
+    "TRANSPORT_READINESS_CHECKS=15"
+  ]
+}
