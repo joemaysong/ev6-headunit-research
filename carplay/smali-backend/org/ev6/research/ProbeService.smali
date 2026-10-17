@@ -232,6 +232,14 @@
  invoke-static {p0},Lorg/ev6/research/NativeTransportGate;->ready(Landroid/content/Context;)V
  goto :done
  :check_retry
+ const-string v1,"org.ev6.research.RECOVER_MANUAL_IAP2"
+ invoke-virtual {v1,v0},Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+ move-result v1
+ if-eqz v1,:check_reconcile
+ iget-object v0,p0,Lorg/ev6/research/ProbeService;->delegate:Ljava/lang/Object;
+ invoke-static {p0,v0,p1},Lorg/ev6/research/NativeTransportGate;->recoverManual(Landroid/content/Context;Ljava/lang/Object;Landroid/content/Intent;)V
+ goto :done
+ :check_reconcile
  const-string v1,"org.ev6.research.RECONCILE_INACTIVE_RECEIVER"
  invoke-virtual {v1,v0},Ljava/lang/String;->equals(Ljava/lang/Object;)Z
  move-result v1

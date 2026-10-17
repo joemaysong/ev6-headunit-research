@@ -46,3 +46,24 @@ reader jar/cache, PCM numeric diagnostics and host run directories. Remove any
 bounded test firewall chain/jump only after exact ownership checks. Never clear
 pairing, Wi-Fi credentials, user apps, system analytics or unrelated crash reports
 as part of project cleanup. Operational controller state is not a capture log.
+
+## October 18 cleanup
+
+Nine owned temporary vehicle capture/build/catalog directories and six
+diagnostic-only files were removed. No persistent USB capture worker remains.
+Functional controller/backend/button packages, original-work observation,
+known-peer state and AP/client restoration state remain required. Routine
+bounded operation records may reappear during normal operation.
+
+Closeout retains the original recovery inputs and current owner-selected final.
+Old candidate copies can be removed only after current artifact checksums are
+verified and a complete current final recovery copy exists. Local private
+diagnostic reconstruction sources stay available without publishing captures
+or requiring a permanently installed recorder.
+
+An optional finite USB sampler source is retained at
+carplay/diagnostics/usb_capture.sh. It needs an explicitly created private
+staging directory and is never installed or launched by final startup. Verify
+its owned PID and increasing samples before disabling USB ADB. It samples only
+fixed flags for at most 120 iterations, then exits; dispose of its exact staging
+directory after retrieving any required sanitized result.

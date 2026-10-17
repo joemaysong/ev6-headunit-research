@@ -1,0 +1,21 @@
+{
+  "version": "2026.10.18-manual-handoff-final",
+  "owner_selected_final": true,
+  "user_reported_X_wired_to_15Pro_wireless_connected": true,
+  "original_disconnect_before_new_connect_trace_observed": true,
+  "selected_native_backend_OEM_association_agreed": true,
+  "observer_unknown_after_success": false,
+  "screen_and_app_operability_explicitly_confirmed_in_latest_case": false,
+  "reverse_USB_selector_complete": false,
+  "same_phone_dual_interface_accepted": false,
+  "switching_tests_assigned_to_owner": true,
+  "no_new_switching_test_requested_or_run_during_finalization": true,
+  "normal_runtime_files_last_cleanup_checked": 22,
+  "full_MFi_certification_claimed": false,
+  "observer_ABI_preparation": {
+    "checks": 1732,
+    "differences": 0,
+    "unavailable": 0,
+    "original_APK_pair_mapped": true
+  }
+}

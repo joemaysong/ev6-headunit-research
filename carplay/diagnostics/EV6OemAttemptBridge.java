@@ -27,6 +27,7 @@ public final class EV6OemAttemptBridge {
         final Handler handler;
         final AttemptObservation state;
         Probe pending;
+        boolean boundaryPending;
         Owner(Object service,Handler handler,String generation) {
             this.service=service;this.handler=handler;
             state=new AttemptObservation(generation);
@@ -76,12 +77,42 @@ public final class EV6OemAttemptBridge {
             if(o!=null){o.state.observationFailed();current=null;}
         }
     }
-    public static void submitted(Object service,String address) {
+    /** Completion bookkeeping follows actual OEM work, independent of root polling.
+     * The observation Runnable never submits an OEM message or invokes a control.
+     * All queue/field reads run on the original Handler thread.
+     */
+    private static void boundaryNow(Owner o) {
+        if(current!=o || Thread.currentThread()!=o.handler.getLooper().getThread())return;
+        try {
+            int mask=0;
+            for(int index=0;index<CODES.length;index++)
+                if(o.handler.hasMessages(CODES[index]))mask|=1<<index;
+            AttemptObservation.Snapshot before=o.state.snapshot();
+            o.state.handlerBoundary(before.receiver,before.sequence,mask,reentryIntent(o.service));
+        }catch(RuntimeException failure){o.state.observationFailed();}
+    }
+    private static void boundaryAfterWork(final Owner o) {
+        if(o==null || current!=o)return;
+        if(Thread.currentThread()==o.handler.getLooper().getThread()) {
+            boundaryNow(o);return;
+        }
+        synchronized(LOCK) {
+            if(current!=o || o.boundaryPending)return;
+            o.boundaryPending=true;
+            boolean posted=o.handler.post(new Runnable(){public void run(){
+                synchronized(LOCK){o.boundaryPending=false;}
+                boundaryNow(o);
+            }});
+            if(!posted){o.boundaryPending=false;o.state.observationFailed();}
+        }
+    }
+    public static void submitted(Object service,String address) {submitted(service,address,-1);}
+    private static void submitted(Object service,String address,int transport) {
         Owner o=owner(service);if(o==null)return;
         try {
             String target=address==null?"":address.toUpperCase(Locale.US);
             if(!target.matches("(?:[0-9A-F]{2}:){5}[0-9A-F]{2}"))target="";
-            o.state.submitted(target);
+            o.state.submitted(target,transport);
         }catch(RuntimeException failure){o.state.observationFailed();}
     }
     public static void enteredDispatch(Object service) {
@@ -93,7 +124,10 @@ public final class EV6OemAttemptBridge {
         return false;
     }
     public static void enteredDispatch(Object service,Message message) {
-        Owner o=owner(service);if(o!=null)o.state.enteredDispatch(controlMessage(message));
+        Owner o=owner(service);if(o!=null) {
+            if(message!=null && message.what==0x2c)o.state.submissionStarted();
+            o.state.enteredDispatch(controlMessage(message));
+        }
     }
     public static void exitedDispatch(Object service,Message message,boolean normal) {
         Owner o=owner(service);if(o==null)return;
@@ -105,6 +139,7 @@ public final class EV6OemAttemptBridge {
         }
         if(normal && message!=null && message.what==0x2c)o.state.submissionReturned();
         o.state.exitedDispatch(normal);
+        boundaryAfterWork(o);
     }
     public static void enteredConnect(Object service,String address) {
         Owner o=owner(service);
@@ -128,10 +163,44 @@ public final class EV6OemAttemptBridge {
      */
     public static long enteredQueue(Object service,Message message) {
         Owner o=owner(service);if(o==null || !controlMessage(message))return -1;
+        // Observe the shared original queue boundary, including original
+        // producers that do not pass through PPActionListener. Never change
+        // the message, uptime, original queue result or original retry logic.
+        // Refresh a genuine Handler boundary BEFORE a new queue submission;
+        // this closes the gap when two original events occur between polls.
+        if(message.what==0x2c) {
+            boundaryNow(o);
+            submitted(service,message.obj instanceof String?(String)message.obj:null,message.arg1);
+        }
         long token=o.state.snapshot().sequence;o.state.enteredDispatch();return token;
     }
     public static void exitedQueue(Object service,long token,boolean accepted) {
-        Owner o=owner(service);if(o!=null && token>=0)o.state.exitedDispatch(accepted);
+        Owner o=owner(service);
+        if(o!=null && token>=0){o.state.exitedDispatch(accepted);boundaryAfterWork(o);}
+    }
+    /** onControllerAdded may produce a NEW request. Keep a historical settled
+     * receipt until actual queue/control work invalidates it. In-flight event
+     * bracketing still blocks every live completion/release bit. */
+    public static long enteredControllerAdded(Object service) {
+        Owner o=owner(service);if(o==null)return -1;
+        boundaryNow(o);
+        long sequence=o.state.snapshot().sequence;
+        o.state.enteredDispatch(false);return sequence;
+    }
+    /** Observe only genuine original pending-request removal. No cancellation
+     * is issued here. A running dispatch cannot qualify as never-started. */
+    public static long enteredRemoval(Object service,int what) {
+        Owner o=owner(service);if(o==null)return -1;
+        try {
+            long token=(what==0x2c || what==-1) && o.handler.hasMessages(0x2c)
+                ?o.state.snapshot().sequence:0;
+            o.state.enteredDispatch(false);return token;
+        }catch(RuntimeException failure){o.state.observationFailed();return -1;}
+    }
+    public static void exitedRemoval(Object service,long token,boolean normal) {
+        Owner o=owner(service);if(o==null || token<0)return;
+        if(normal && token>0)o.state.submissionRemoved(token);
+        o.state.exitedDispatch(normal);boundaryAfterWork(o);
     }
     public static long enteredEvent(Object service) {
         Owner o=owner(service);if(o==null)return -1;
@@ -153,6 +222,7 @@ public final class EV6OemAttemptBridge {
             o.state.terminalReturned(s.receiver,sequence);
         }
         o.state.exitedDispatch(normal);
+        boundaryAfterWork(o);
     }
     private static String query(final Owner o) throws Exception {
         if(o==null)return UNKNOWN;

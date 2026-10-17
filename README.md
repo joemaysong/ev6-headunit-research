@@ -1,43 +1,45 @@
 # EV6 Head Unit Research — final
 
-The owner-selected final is **2026.10.17-oem11-apfix**, frozen on October17,2026
-(Asia/Taipei). This exact firmware integration retains the original iAP2/MFi,
-CarPlay control/disconnect, video and audio-resource paths. Project components
-supply wireless management, the device-row UI and required network integration.
+The owner-selected final is **2026.10.18-manual-handoff-final**, frozen on October 18, 2026
+(Asia/Taipei). It preserves the currently installed working combination.
+The owner will perform further switching tests. Final designation does not
+mark unresolved scenarios passed.
 
-## Final changes
+## Current changes
 
-- Original PhoneProjection connection/control ownership; no direct HTTP sender.
-- Scoped IPv4 tracked TCP reply allowance and owned AP subnet/firewall handling.
-- OEM9 backend invocation acknowledgment and callback ownership retained.
-- PCM state-based drain for short media endings; stock Nature Sound retained.
-- OEM11 waits for original returned work/queued retries/timeouts before AP
-  teardown; genuine native/backend/original association are independently checked.
-- Original retained reconnect metadata is not mistaken for pending current work.
+- Original iAP2/MFi and PhoneProjection control/disconnect ownership retained.
+- Prior AP cleanup timing, scoped network integration and PCM drain retained.
+- Original wired preflight continuations are observed separately from delegated
+  player work; only same-target Wired=0 rejected preflights qualify.
+- Explicit native-UI selection can stop an observed original active session
+  through disconnectPP, wait for genuine finalization, then connect the next
+  device. Automatic connections still preserve an active session.
+- Guarded manual iAP2 recovery preserves healthy/in-progress original links.
 
-## Observed final acceptance
+## Observed behavior and limits
 
-One bounded failure/recovery test dropped12 IPv4 SYNs. Initial and original retry
-returned ERROR. AP remained enabled while original work was pending, including
-after the project deadline. Original work settled before AP/client cleanup and
-before later preparation. A genuine selected session recovered. The user then
-manually stopped: session/association/queues cleared, AP off and Wi-Fi enabled.
-Screen/App operability was not separately confirmed in this final window.
+The owner reported successful X wired -> 15 Pro wireless selection while X
+remained plugged in. Controller events show original stop/finalization before
+new setup; selected native, backend and OEM association agreed and observer
+uncertainty stayed false. Latest screen/App operability was not separately
+confirmed.
 
-The user selected this as final and deferred speculative feature expansion.
-This is not full MFi certification or acceptance of every ignition/USB/endurance
-scenario. No further investigation is implied by an old exploratory checklist.
+**Known limitation:** the original Device Connections list can omit an inactive
+USB-only phone that is not Bluetooth paired. USB list expansion was stopped
+without deployment. Reverse selection and same-phone USB/wireless behavior
+remain open owner tests. No full Apple/MFi certification is claimed.
 
-## Repository
+## Documentation
 
-- [Final architecture](docs/06-carplay-architecture.md)
+- [Architecture](docs/06-carplay-architecture.md)
 - [Build and private inputs](docs/11-build-and-deployment.md)
 - [Validation scope](docs/12-validation-and-open-issues.md)
 - [Original backups and recovery](docs/13-rollback-and-porting.md)
 - [Recreate diagnostics](docs/15-diagnostics-and-retention.md)
+- [Owner switching checklist](docs/16-owner-switching-tests.md)
 - [Public technical references](docs/14-references.md)
 
-Only English text/project source is published. No firmware, APK/ODEX/DEX/SO/JAR,
-signing keys, Wi-Fi credentials, pairing databases, raw diagnostic data, private
-identifiers or original proprietary decompilation is distributed. The original
-full backup and exact final runtime remain private. See [SECURITY.md](SECURITY.md).
+Only English project text/source is published. No IMG, firmware, APK/ODEX/DEX/SO/
+JAR, signing key/certificate, Wi-Fi credential, pairing database, raw diagnostic
+data, private device identifier or proprietary OEM decompilation is distributed.
+Exact final assets and original recovery inputs stay private. See [SECURITY.md](SECURITY.md).

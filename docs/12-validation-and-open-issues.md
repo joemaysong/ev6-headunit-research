@@ -1,14 +1,42 @@
 # Final validation scope
 
-The final owner-selected build is2026.10.17-oem11-apfix. The targeted AP
-premature-cleanup defect passed one bounded failure/recovery and normalstop.
-12IPv4 SYNs were intentionally dropped; original initial+retry returned ERROR.
-All available pending-work samples retainedAP. Settlement precededAPcleanup;
-subsequent preparation followed settlement. Genuine selected session recovered.
-Manualstop cleared session/backend/association/queues, disabledAP and enabledWi-Fi.
+Current owner-selected final: **2026.10.18-manual-handoff-final**.
 
-These are sampled sequential observations, not atomic transition timestamps.
-Some reads were unavailable while the original Handler was blocked; no completion
-was inferred. Screen/App operability was not separately confirmed in this final
-window. Broader phone/audio/power/USB/endurance scenarios are unaccepted/deferred,
-not newly asserted bugs and not prerequisites to the owner's final designation.
+## Current observed evidence
+
+The owner reported successful X wired -> 15 Pro wireless selection with X
+remaining plugged in. Original stop/finalization events preceded preparation
+of the next connection. Native session, backend publication and OEM selected
+association agreed; observer uncertainty remained false. Latest screen/App
+operability was not separately confirmed.
+
+The deployed observer passed isolated compilation and 1,732 original ABI
+reference checks with zero differences/unavailable entries, plus original
+APK/adjacent-cache pairing. These are build compatibility checks, not complete
+functional or switching acceptance. The cleanup checked 22 runtime files
+unchanged and preserved the active session.
+
+## Known limitation / open owner checks
+
+- An inactive, unpaired USB-only phone may disappear from the original Device
+  Connections list. The list expansion was stopped without deployment.
+- Reverse selection of that missing USB device is incomplete.
+- Same-phone wireless-first/USB-first coexistence is not accepted yet.
+- Repeated switching, ignition/endurance and latest screen/App interaction
+  remain owner checks.
+
+See [owner checklist](16-owner-switching-tests.md). The owner will perform
+further switching tests; no additional live experiment is part of closeout.
+
+## Prior evidence
+
+The prior OEM11 AP timing repair passed one bounded failure/recovery and
+manual-stop case. That historical result is inherited implementation context,
+not a rerun of every scenario on this combined final. Older validation files
+retain their original dates/scopes and must not be read as new acceptance.
+
+The public Apple device-selector guidance covers explicit selection across
+plugged-in and wirelessly paired devices. It does not require a per-phone
+manual transport switch. The current missing USB-only row remains a gap;
+owner final designation does not waive it or claim full MFi certification.
+Reference: https://developer.apple.com/videos/play/wwdc2017/717/

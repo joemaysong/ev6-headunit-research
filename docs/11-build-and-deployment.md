@@ -45,3 +45,11 @@ Before installing generated output compare its scope and original hashes, save
 pristine recovery, stop through original UI, check inactive native/backend/PP
 association and APoff, replace only scoped known files, remount system read-only,
 then verify real session ownership. Never treat an outer timeout as completion.
+
+## October 18 final
+
+The current frozen controller/backend/observer sources correspond to
+2026.10.18-manual-handoff-final. The exact selected private caches/APKs remain the
+restoration source. Do not reconstruct the abandoned USB catalog experiment.
+Observer model and bridge sources are current; original private smali wrappers
+remain owner-supplied. No new live switching tests are implied by publication.

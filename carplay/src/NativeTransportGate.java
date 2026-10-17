@@ -37,6 +37,11 @@ public final class NativeTransportGate {
         if(owner!=context || state==null || !BackendOwnership.current(context))return;
         boolean ready=apReady();dispatch(state.ready(ready));publish(ready);
     }
+    public static synchronized void recoverManual(Context context,Object delegate,android.content.Intent intent) {
+        if(owner!=context || state==null || !BackendOwnership.current(context)
+            || !state.attached || !state.started || !apReady())return;
+        ManualIap2Reconnect.request(context,delegate,intent);
+    }
     static void dispatch(int action) {
         if(action==TransportReadiness.NONE)return;
         // A swallowed delegate failure must not leave the gate started.

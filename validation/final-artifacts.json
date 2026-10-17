@@ -1,6 +1,10 @@
 {
-  "version": "2026.10.17-oem11-apfix",
-  "status": "owner_selected_final_targeted_AP_acceptance",
+  "version": "2026.10.18-manual-handoff-final",
+  "status": "final_user_selected",
+  "selected_date": "2026-10-18",
+  "timezone": "Asia/Taipei",
+  "scope": "Current installed combination preserved at owner request; switching acceptance remains with owner; not complete MFi certification",
+  "previous_release": "2026.10.17-oem11-apfix",
   "assets": {
     "HKMC_BtSettings.odex": {
       "sha256": "69691050b7a428bfb1c529af37702bf5c7db9d17052b52da3fe92e8f7d50df0e",
@@ -8,9 +12,14 @@
       "bytes": 2579344
     },
     "HKMC_DiPO.odex": {
-      "sha256": "ec2363ae89b67d1af644db4ce694fb7b2295dffa8b5eae2a7b6ca491ddb7501c",
-      "md5": "3197cc49211f33539837d0b9fa328dee",
-      "bytes": 861408
+      "sha256": "cfec4b58eda293433410740b0705d35e79ca657849ba0529f360e6f77525579e",
+      "md5": "d15cdd63ef31c4911fea81fce6602fda",
+      "bytes": 864848
+    },
+    "HKMC_NatureSound.odex": {
+      "sha256": "eb24ca2dfcdd1f875b32cc491a323c16a1e886c5fad33cda0c82f796ee97c58c",
+      "md5": "2d191cd5bfdc1b439450a95e69f079c0",
+      "bytes": 1491640
     },
     "ap-firewall.sh": {
       "sha256": "12afd001aab85ff4737c5f0c939da4736ababf06c29083dde592f080e1e3fc6f",
@@ -23,9 +32,9 @@
       "bytes": 3689
     },
     "backend.apk": {
-      "sha256": "86134026080542ffa541a49eb47635d3ad81a36cb61b460ae20cf05d50f1888e",
-      "md5": "5a1b3b341a7c4015d1e7adb66ffa13ac",
-      "bytes": 17793
+      "sha256": "364a4f6028e77e6d5f875279c118ce2786b57beaf894e509287fc91038355326",
+      "md5": "6d5c975058289f9b27399903bc3c8bf3",
+      "bytes": 20041
     },
     "button.apk": {
       "sha256": "7b4942b1e5641aa42f9806f1dc42b5d76eb7141cde4a14f9cb1b06ed30b4f64c",
@@ -38,9 +47,9 @@
       "bytes": 100
     },
     "controller.jar": {
-      "sha256": "91ba61ea8818fe69f8d817959f405d9d13407ad18217d7e189b842b0d36271ba",
-      "md5": "5999c798dabcf1d2e5d74465f41d9e68",
-      "bytes": 84740
+      "sha256": "0baaf48f979542d9275e7a909411c7fc590fea7b836df5b7d2396395cdb19c93",
+      "md5": "b825725592ed8f720c9dbbca49bf31a0",
+      "bytes": 86608
     },
     "detach-overlays": {
       "sha256": "4489014aa63fc233d5451c3c382510c3bf8cea1336e9d99ed616daebb56b6c82",
@@ -81,12 +90,11 @@
       "sha256": "154f72a88c3ad8e2206c8a2a6d54ea5dd0015de3def768767732640bae9636f6",
       "md5": "a92d7b1cec4d0509da805a5f34d03540",
       "bytes": 26540
-    },
-    "HKMC_NatureSound.odex": {
-      "sha256": "eb24ca2dfcdd1f875b32cc491a323c16a1e886c5fad33cda0c82f796ee97c58c",
-      "md5": "2d191cd5bfdc1b439450a95e69f079c0",
-      "bytes": 1491640
     }
   },
-  "no_runtime_payloads_published": true
+  "known_limitations": [
+    "An unpaired USB-only inactive phone can disappear from the original Device Connections list; reverse selection is incomplete.",
+    "Same-phone simultaneous USB/wireless behavior has not been accepted in this release."
+  ],
+  "functional_source": "manual-handoff-fix controller, manual-reconnect-fix backend, usb-preflight-fix observer; original OEM business bodies retained"
 }

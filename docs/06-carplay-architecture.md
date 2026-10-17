@@ -17,3 +17,12 @@ experimental dual-stack/provider rewrites are excluded. Stock Nature Sound and
 original native control/disconnect libraries remain. A state-based PCM drain
 patch preserves short media endings. No direct HTTP or native teardown fallback
 is shipped. No full transport-loss/power feature expansion is claimed.
+
+## Explicit selection from an original active session
+
+Only a fresh accepted UI selection can adopt a known active original identity
+for stopping. Native control ownership, matching OEM association and known
+original observation are required and rechecked. The existing disconnectPP
+handler is used. No wireless publication or connected flag is fabricated for
+USB. Genuine original settlement and inactive native/backend/OEM states still
+precede the next begin. Automatic pairing/reconnection cannot enter this path.

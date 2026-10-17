@@ -37,6 +37,9 @@ public final class CarPlayController {
     String lastAssessment="",pendingFailure="";
     boolean ap,btRequested,needUserStop,stationQueryUnavailable;
     boolean oemConnectSubmitted,btDeferred;
+    boolean manualSelection;
+    String failedBootstrapTarget="",failedBootstrapEpoch="";
+    long failedBootstrapCommand;
     long deadline,lastCommand,knownPeerDeadline,oemEndDeadline;
     long pausedAt;
     int backendPid;
@@ -305,6 +308,7 @@ public final class CarPlayController {
         preparationBaseline=baseline;
         closeDiscovery();
         new File(STATE,"manual-pause").delete();
+        manualSelection=manual;
         phase="preparing";btRequested=false;selectedPeer="";
         oemConnectSubmitted=false;btDeferred=false;oemEndDeadline=0;pendingFailure="";
         deadline=SystemClock.elapsedRealtime()+90000;
@@ -313,6 +317,30 @@ public final class CarPlayController {
         Object manager=bt();
         boolean missingPhone=manager!=null && listedByBluetooth(manager,target) && !target.equals(hfp());
         if(!manual || knownPeers.getProperty(target)==null || missingPhone)requestBt();
+        recoverManualIap2();
+    }
+    String observedPairingEpoch() throws Exception {
+        java.util.regex.Matcher match=java.util.regex.Pattern.compile("^epoch=([1-9][0-9]*) ").matcher(read(new File(BACKEND,"pairing.state"),512));
+        return match.find()?match.group(1):"";
+    }
+    /** Check actual iAP2 validity once for an explicit user selection. The
+     * backend may preserve a valid link, recover a proved invalid link, or
+     * recover a failed bootstrap only on a NEW user retry of that BT epoch.
+     */
+    void recoverManualIap2() throws Exception {
+        if(!manualSelection || lastCommand<=0 || !policy.target.equals(hfp()))return;
+        String epoch=observedPairingEpoch();if(epoch.length()==0)return;
+        if(nativeSession.active() || backendSessionActive() || !originalCleanupReady()
+            || wifiState("getWifiApEnabledState")!=13 || !new File(STATE,"ap-owner").exists())return;
+        long prior=policy.target.equals(failedBootstrapTarget) && epoch.equals(failedBootstrapEpoch)
+            && failedBootstrapCommand<lastCommand?failedBootstrapCommand:0;
+        // Consume before dispatch. A dropped/rejected action cannot become a loop.
+        failedBootstrapCommand=0;failedBootstrapTarget="";failedBootstrapEpoch="";
+        String[] command={"/system/bin/am","startservice","-n","org.ev6.wirelesscarplay/org.ev6.research.ProbeService",
+            "-a","org.ev6.research.RECOVER_MANUAL_IAP2","--es","target",policy.target,"--es","epoch",epoch,
+            "--el","token",Long.toString(lastCommand),"--el","failed-token",Long.toString(prior),
+            "--el","issued",Long.toString(SystemClock.elapsedRealtime())};
+        exec(null,10000,command);mark("manual-iap2-state-check-requested");
     }
     String pairingEpoch() throws Exception {
         String state=read(new File(BACKEND,"pairing.state"),512);
@@ -376,11 +404,12 @@ public final class CarPlayController {
         // The original service owns both the native control identifier and
         // the PP association. Never manufacture either to make the UI light.
         boolean stopPending=policy.disconnecting;
-        policy.started();phase="connected";lastHfp="";savePeer();
+        policy.started();failedBootstrapCommand=0;failedBootstrapTarget="";failedBootstrapEpoch="";phase="connected";lastHfp="";savePeer();
         write(new File(STATE,"current-target"),policy.target);busy(false);mark("genuine-carplay-connected");
         if(stopPending || pendingTarget.length()>0)needUserStop=true;
     }
     void disconnect() throws Exception {
+        failedBootstrapCommand=0;failedBootstrapTarget="";failedBootstrapEpoch="";
         if(policy.target.length()==0 || policy.disconnecting)return;
         policy.stopByUser();pausedAt=SystemClock.elapsedRealtime();bonds.clearSetups();
         write(new File(STATE,"manual-pause"),Long.toString(pausedAt));
@@ -415,6 +444,38 @@ public final class CarPlayController {
         restoreClient();preparationBaseline=null;busy(false);mark(policy.paused?"paused-client-enabled":"disconnected-client-enabled");
         if(next.length()>0)begin(next,true);
     }
+    /** Called ONLY for a newly accepted explicit native-UI selection command.
+     * An original active session may have started over USB without this
+     * wireless worker owning it. Adopt its observed identity for STOP only;
+     * do not claim a published wireless session or start a second session.
+     */
+    void switchOriginalSessionByUser(String next) throws Exception {
+        if(!nativeSession.active() || policy.target.length()!=0 || attemptOwner.owned()) {
+            mark("manual-switch-original-state-changed");return;
+        }
+        String active=validTarget((String)pp("getCPConnectedBTAddress",new Class<?>[0]));
+        OemAttemptSnapshot current=originalObservation();
+        if(active.length()==0 || active.equals(next) || !bonded(next)
+            || !nativeSession.hasControlOwner() || current==null || current.unknown
+            || current.sequence<1 || !active.equals(current.target)
+            || current.dispatches!=0 || current.connectCalls!=0 || current.queued!=0) {
+            mark("manual-switch-original-owner-needs-review");return;
+        }
+        // Re-read after the asynchronous diagnostic observation. A stale
+        // association never authorizes stopping a different original session.
+        String confirmed=validTarget((String)pp("getCPConnectedBTAddress",new Class<?>[0]));
+        if(!nativeSession.active() || !nativeSession.hasControlOwner() || !active.equals(confirmed)) {
+            mark("manual-switch-original-state-changed");return;
+        }
+        attemptOwner.adopt(current,active);
+        policy.target=active;oemConnectSubmitted=true;pendingTarget=next;
+        // Existing original disconnectPP -> OEM Handler0x2d ->
+        // onDisconnectPP -> disconnectDPCarPlay. Actual finalization,
+        // empty queue and cleared original association still gate ended().
+        // policy.connected is deliberately NOT manufactured for USB.
+        disconnect();
+        mark("manual-switch-awaiting-original-finalization");
+    }
     void command() throws Exception {
         String command=read(new File(BUTTON,"command"),128);
         if(!command.matches("[1-9][0-9]{0,18} (connect|disconnect) (?:[0-9A-F]{2}:){5}[0-9A-F]{2}"))return;
@@ -424,6 +485,9 @@ public final class CarPlayController {
         String target=validTarget(fields[2]);if(!bonded(target))return;
         if(fields[1].equals("disconnect")) {
             if(target.equals(policy.target))disconnect();return;
+        }
+        if(nativeSession.active() && !policy.connected && policy.target.length()==0 && !attemptOwner.owned()) {
+            switchOriginalSessionByUser(target);return;
         }
         if(policy.connected) {
             if(!target.equals(policy.target)){pendingTarget=target;disconnect();}
@@ -448,6 +512,11 @@ public final class CarPlayController {
         pendingFailure=code;
         if(!retireOriginalAttempt()) {
             phase="settling-original";mark("waiting-original-work-after-failure");return;
+        }
+        if(code.equals("connection-deadline-client-restored") && manualSelection
+            && phase.equals("waiting-native") && !oemConnectSubmitted && policy.target.equals(hfp())) {
+            String epoch=observedPairingEpoch();
+            if(epoch.length()>0) {failedBootstrapTarget=policy.target;failedBootstrapEpoch=epoch;failedBootstrapCommand=lastCommand;}
         }
         policy.ended();phase="error";restoreClient();preparationBaseline=null;busy(false);mark(code);pendingFailure="";oemConnectSubmitted=false;
         if(pendingTarget.length()>0){String next=pendingTarget;pendingTarget="";begin(next,true);}
@@ -665,7 +734,7 @@ public final class CarPlayController {
             String address=(String)pp("getCPConnectedBTAddress",new Class<?>[0]);
             if(!ConnectionPolicy.oemSessionReady(nativeSession.active(),read(new File(BACKEND,"session.state"),8).equals("1"),
                     nativeSession.hasControlOwner(),adopted,address))throw new IOException("active-session-without-oem-owner");
-            policy.target=adopted;policy.started();phase="connected";ap=true;
+            policy.target=adopted;policy.started();failedBootstrapCommand=0;failedBootstrapTarget="";failedBootstrapEpoch="";phase="connected";ap=true;
             write(new File(STATE,"current-target"),adopted);
             networkReady();
             mark("adopted-genuine-owned-session");

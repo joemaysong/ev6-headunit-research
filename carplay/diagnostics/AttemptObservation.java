@@ -14,6 +14,18 @@ public final class AttemptObservation {
     // A returned terminal boundary can settle the observed work while original
     // reconnect metadata remains. This receipt is not an AP-release permission.
     private long settledSequence=-1;
+    private long removedUnstartedSequence=-1;
+    private boolean submissionStarted,canceledBeforeDispatch;
+    // Bounded cause bits for read-only diagnosis; no identities or event log.
+    private int uncertaintyReasons;
+    private int transport=-1,preflightContinuations;
+    // Last submission predecessor facts, bounded and without peer identifiers.
+    private boolean previousSameTarget,previousReturned,previousRejected,
+        previousHandled,previousTerminal,previousSettled,previousRemoved;
+    private int previousTransport=-1,previousEntries,previousDelegates,
+        previousDispatches,previousCalls,previousQueued;
+
+    private void uncertain(int reason) {unknown=true;uncertaintyReasons|=reason;}
     private int connectEntries,delegateEntries;
     private boolean submissionHandled,rejected;
     private String connectResult="UNOBSERVED";
@@ -28,14 +40,45 @@ public final class AttemptObservation {
         return receiver.equals(generation) && sequence==attempt && attempt>0;
     }
     /** Called before the genuine original submission is queued. No rejection. */
-    public synchronized long submitted(String address) {
-        boolean priorUnfinished=sequence>0 && settledSequence!=sequence;
-        changed();sequence++;target=address==null?"":address;
-        unknown=unknown || priorUnfinished || target.length()==0;
+    public synchronized long submitted(String address) {return submitted(address,-1);}
+    public synchronized long submitted(String address,int originalTransport) {
+        previousSameTarget=target.equals(address);
+        previousReturned=returned;previousRejected=rejected;previousHandled=submissionHandled;
+        previousTerminal=terminal;previousSettled=settledSequence==sequence;
+        previousRemoved=removedUnstartedSequence==sequence;
+        previousTransport=transport;previousEntries=connectEntries;previousDelegates=delegateEntries;
+        previousDispatches=dispatches;previousCalls=connectCalls;previousQueued=queued;
+        // Exact original wired preflight continuation: the old whole 0x2c
+        // returned/rejected before ANY player delegation. Pending original
+        // identity/retry messages are still tracked, not deleted or ignored.
+        // This receipt permits a new submission only, never AP cleanup.
+        boolean wiredPreflightContinuation=sequence>0 && !unknown
+            && transport==0 && originalTransport==0 && previousSameTarget
+            && returned && submissionHandled && rejected && delegateEntries==0 && connectCalls==0;
+        if(wiredPreflightContinuation)preflightContinuations++;
+        boolean priorUnfinished=sequence>0 && settledSequence!=sequence
+            && removedUnstartedSequence!=sequence && !wiredPreflightContinuation;
+        changed();sequence++;target=address==null?"":address;transport=originalTransport;
+        if(priorUnfinished)uncertain(1);
+        if(target.length()==0)uncertain(2);
         returned=false;terminal=false;queued=ALL;reentryIntent=3;
-        settledSequence=-1;connectEntries=0;delegateEntries=0;submissionHandled=false;rejected=false;
+        settledSequence=-1;removedUnstartedSequence=-1;submissionStarted=false;canceledBeforeDispatch=false;connectEntries=0;delegateEntries=0;submissionHandled=false;rejected=false;
         connectResult="UNOBSERVED";
         return sequence;
+    }
+    /** An actual 0x2c dispatch has begun. A queue removal can no longer
+     * prove that this request never ran, even before connectDSCarPlay enters. */
+    public synchronized void submissionStarted() {
+        changed();submissionStarted=true;canceledBeforeDispatch=false;removedUnstartedSequence=-1;settledSequence=-1;
+    }
+    /** Receipt only after the OEM removed a pending 0x2c. It permits a
+     * replacement submission, never AP release or completion by itself. */
+    public synchronized void submissionRemoved(long attempt) {
+        if(attempt!=sequence || attempt<=0)return;
+        changed();
+        if(!submissionStarted && connectEntries==0 && delegateEntries==0 && connectCalls==0) {
+            removedUnstartedSequence=sequence;canceledBeforeDispatch=true;returned=true;
+        }
     }
     /** Bracket the complete original Handler dispatch, including exceptions. */
     public synchronized void enteredDispatch() {enteredDispatch(true);}
@@ -45,36 +88,36 @@ public final class AttemptObservation {
     }
     public synchronized void exitedDispatch(boolean normal) {
         changed();
-        if(dispatches==0)unknown=true;else dispatches--;
-        if(!normal)unknown=true;
+        if(dispatches==0)uncertain(4);else dispatches--;
+        if(!normal)uncertain(8);
     }
     /** Bracket connectDSCarPlay at both original Java call sites. Its preflight
      * and synchronous native work stay conservatively in flight together.
      * A normal return does not assert that the native call actually ran.
      */
     public synchronized void enteredConnect(String address) {
-        changed();connectCalls++;connectEntries++;settledSequence=-1;
+        changed();canceledBeforeDispatch=false;connectCalls++;connectEntries++;settledSequence=-1;removedUnstartedSequence=-1;
         terminal=false;rejected=false;
-        if(sequence==0 || !target.equals(address) || dispatches==0 || connectCalls!=1)unknown=true;
+        if(sequence==0 || !target.equals(address) || dispatches==0 || connectCalls!=1)uncertain(16);
     }
     /** Exact original connectDS -> DipoPlayer call site, before invocation.
      * This is not a native-call count or a successful-control acknowledgement.
      */
     public synchronized void enteredDelegate(String address) {
-        changed();delegateEntries++;settledSequence=-1;
-        if(sequence==0 || !target.equals(address) || connectCalls!=1 || dispatches==0)unknown=true;
+        changed();canceledBeforeDispatch=false;delegateEntries++;settledSequence=-1;removedUnstartedSequence=-1;
+        if(sequence==0 || !target.equals(address) || connectCalls!=1 || dispatches==0)uncertain(32);
     }
     public synchronized void returnedConnect(boolean normal) {
         returnedConnect(normal,"UNOBSERVED");
     }
     public synchronized void returnedConnect(boolean normal,String result) {
         changed();
-        if(connectCalls==0)unknown=true;else connectCalls--;
+        if(connectCalls==0)uncertain(4);else connectCalls--;
         if(normal){
             returned=true;connectResult=result==null?"UNOBSERVED":result;
             if(submissionHandled)rejected=!connectResult.equals("OK") && !connectResult.equals("UNOBSERVED");
         }
-        else unknown=true;
+        else uncertain(8);
     }
     /** Whole original 0x2c dispatch returned. A real preflight rejection is
      * distinct from a native call; it can finish only with no pending work.
@@ -98,15 +141,15 @@ public final class AttemptObservation {
     public synchronized void handlerBoundary(String generation,long attempt,int queuedMask,int intentMask) {
         if(!receiver.equals(generation) || sequence!=attempt || attempt<0)return;
         changed();
-        if(queuedMask<0 || (queuedMask & ~ALL)!=0 || intentMask<0 || intentMask>3) {unknown=true;queued=ALL;return;}
+        if(queuedMask<0 || (queuedMask & ~ALL)!=0 || intentMask<0 || intentMask>3) {uncertain(64);queued=ALL;return;}
         queued=queuedMask;reentryIntent=intentMask;
         if(queued!=0)settledSequence=-1;
         if(dispatches==0 && connectCalls==0)boundaryRevision=revision;
         if(workSettled())settledSequence=sequence;
     }
-    public synchronized void observationFailed() {changed();unknown=true;}
+    public synchronized void observationFailed() {changed();uncertain(128);}
     private boolean workSettled() {
-        return sequence>0 && !unknown && returned && (terminal || (submissionHandled && rejected)) && dispatches==0
+        return sequence>0 && !unknown && returned && (terminal || canceledBeforeDispatch || (submissionHandled && rejected)) && dispatches==0
             && connectCalls==0 && queued==0 && boundaryRevision==revision;
     }
     private boolean complete() {

@@ -1,5 +1,7 @@
 # Final CarPlay project sources
 
-Frozen final2026.10.17-oem11-apfix. See the root README and current build guide.
-Original OEM classes and exact runtime assets are private inputs. Retired direct
-HTTP/native teardown fallback sources are removed from the active tree.
+Frozen owner-selected final: **2026.10.18-manual-handoff-final**.
+See the root README, build guide and owner switching checklist.
+Original OEM classes and exact runtime assets remain private.
+The stopped USB catalog experiment is not part of this source tree.
+Historical test sources do not imply fresh validation of the current runtime.
