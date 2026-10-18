@@ -6,8 +6,7 @@ import struct
 import subprocess
 import os
 import re
-import sys
-sys.path.insert(0, '/tmp/ev6-native-analysis')
+import argparse
 from elftools.elf.elffile import ELFFile
 from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB
 
@@ -18,24 +17,30 @@ LIMIT=0x8d84
 
 def branch(source,target):
     delta=target-source-4
-    assert delta%2==0 and -(1<<24)<=delta<(1<<24)
+    if delta%2 or not -(1<<24)<=delta<(1<<24):raise ValueError("Thumb branch is out of range")
     value=delta&((1<<25)-1)
     s=(value>>24)&1;i1=(value>>23)&1;i2=(value>>22)&1
     return struct.pack('<HH',0xf000|(s<<10)|((value>>12)&1023),0x9000|((1^i1^s)<<13)|((1^i2^s)<<11)|((value>>1)&2047))
 
 def main():
-    metadata='--metadata' in sys.argv
-    main_high='--main-high' in sys.argv
-    media_latency='--media-latency' in sys.argv
-    drain_media='--drain-media' in sys.argv
-    media_48k='--media-48k' in sys.argv
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--original',required=True,type=Path)
+    parser.add_argument('--output',required=True,type=Path)
+    parser.add_argument('--zig',default=os.environ.get('ZIG'))
+    for flag in ['metadata','main-high','media-latency','drain-media','media-48k']:
+        parser.add_argument('--'+flag,action='store_true')
+    args=parser.parse_args()
+    if not args.zig:parser.error('Set ZIG or --zig to the chosen Zig executable')
+    build=args.output.resolve();build.mkdir(parents=True,exist_ok=False)
+    metadata=args.metadata;main_high=args.main_high;media_latency=args.media_latency
+    drain_media=args.drain_media;media_48k=args.media_48k
     if drain_media and not (main_high and metadata):raise ValueError('Drain trial requires main-high and metadata')
     if media_latency and not main_high:raise ValueError('Media latency requires main-high formats')
     if media_48k and not (main_high and media_latency):raise ValueError('48k trial requires matching main-high formats and latency row')
-    original=HERE/'libCarPlayAudio.so'
+    original=args.original.resolve()
     data=bytearray(original.read_bytes())
-    assert hashlib.sha256(data).hexdigest()==EXPECTED
-    assert not any(data[START:LIMIT])
+    if hashlib.sha256(data).hexdigest()!=EXPECTED:raise ValueError("Audio original differs from the verified firmware")
+    if any(data[START:LIMIT]):raise ValueError("Expected empty executable cave differs")
     asm='''.syntax unified
 .thumb
 .section .text,"ax",%progbits
@@ -357,14 +362,14 @@ capability_match_type:
             return f' movs r0,#{immediate}\n lsls r0,r0,#{shift}\n'
         asm=re.sub(r' movw r0,#0\n movt r0,#0x([0-9a-fA-F]+)\n',compact_mask,asm)
         asm+=(HERE/'media-drain.S').read_text()
-    (HERE/'capability-candidate.S').write_text(asm)
-    (HERE/'capability-candidate.ld').write_text('original_playback_close_continue = 0x5aa2; original_input_continue = 0x3ab0; original_output_continue = 0x3b78; original_formats_continue = 0x3e20; original_create_formats = 0x3cd0; original_latencies_continue = 0x30d8; original_default_latency = 0x4a2c; original_create_latency = 0x2f48; original_array_append = 0x26d4; original_cf_release = 0x26e0; original_cf_equal = 0x26ec; SECTIONS { . = 0x89e0; .text : { *(.text*) } /DISCARD/ : { *(.ARM.exidx*) *(.ARM.extab*) *(.comment*) *(.note*) } }')
-    env=dict(os.environ,ZIG_GLOBAL_CACHE_DIR='/tmp/ev6-audio-zig-cache',ZIG_LOCAL_CACHE_DIR='/tmp/ev6-audio-zig-local')
-    subprocess.run(['/tmp/ev6-audio-toolchain/ziglang/zig','cc','-target','arm-linux-gnueabi','-mcpu=cortex_a15','-nostdlib','-no-pie','-Wl,-T,'+str(HERE/'capability-candidate.ld'),'-Wl,-e,capability_input',str(HERE/'capability-candidate.S'),'-o',str(HERE/'capability-candidate.elf')],env=env,check=True,capture_output=True)
-    with (HERE/'capability-candidate.elf').open('rb') as f:
+    (build/'capability-candidate.S').write_text(asm)
+    (build/'capability-candidate.ld').write_text('original_playback_close_continue = 0x5aa2; original_input_continue = 0x3ab0; original_output_continue = 0x3b78; original_formats_continue = 0x3e20; original_create_formats = 0x3cd0; original_latencies_continue = 0x30d8; original_default_latency = 0x4a2c; original_create_latency = 0x2f48; original_array_append = 0x26d4; original_cf_release = 0x26e0; original_cf_equal = 0x26ec; SECTIONS { . = 0x89e0; .text : { *(.text*) } /DISCARD/ : { *(.ARM.exidx*) *(.ARM.extab*) *(.comment*) *(.note*) } }')
+    env=dict(os.environ,ZIG_GLOBAL_CACHE_DIR=str(build/'zig-global'),ZIG_LOCAL_CACHE_DIR=str(build/'zig-local'))
+    subprocess.run([args.zig,'cc','-target','arm-linux-gnueabi','-mcpu=cortex_a15','-nostdlib','-no-pie','-Wl,-T,'+str(build/'capability-candidate.ld'),'-Wl,-e,capability_input',str(build/'capability-candidate.S'),'-o',str(build/'capability-candidate.elf')],env=env,check=True,capture_output=True)
+    with (build/'capability-candidate.elf').open('rb') as f:
         elf=ELFFile(f);section=elf.get_section_by_name('.text');code=section.data()
         symbols={s.name:s['st_value']&~1 for s in elf.get_section_by_name('.symtab').iter_symbols()}
-        assert section['sh_addr']==START and START+len(code)<=LIMIT, (len(code),LIMIT-START)
+        if section['sh_addr']!=START or START+len(code)>LIMIT:raise ValueError('Compiled audio code exceeds reviewed cave')
     data[START:START+len(code)]=code
     patches=[(0x3aac,'capability_input'),(0x3b74,'capability_output')]
     if main_high:patches.append((0x3e1c,'capability_formats'))
@@ -373,16 +378,16 @@ capability_match_type:
     for address,name in patches:
         patch=branch(address,symbols[name]);data[address:address+4]=patch
         decoded=list(Cs(CS_ARCH_ARM,CS_MODE_THUMB).disasm(patch,address))
-        assert len(decoded)==1 and decoded[0].mnemonic=='b.w' and int(decoded[0].op_str[1:],16)==symbols[name]
+        if len(decoded)!=1 or decoded[0].mnemonic!='b.w' or int(decoded[0].op_str[1:],16)!=symbols[name]:raise ValueError('Thumb branch disassembly differs')
     # Extend only the existing executable PT_LOAD into its unused zero padding.
     phoff=struct.unpack_from('<I',data,28)[0];phnum=struct.unpack_from('<H',data,44)[0]
     for i in range(phnum):
         offset=phoff+i*32;p=struct.unpack_from('<8I',data,offset)
         if p[0]==1 and p[1]==0 and p[2]==0:
-            assert p[4]==START and p[5]==START and p[6]==5
+            if p[4]!=START or p[5]!=START or p[6]!=5:raise ValueError('Executable segment layout differs')
             struct.pack_into('<II',data,offset+16,START+len(code),START+len(code));break
     else:raise RuntimeError('Expected executable segment not found')
-    candidate=HERE/'libCarPlayAudio-wireless-candidate.so';candidate.write_bytes(data)
+    candidate=build/'libCarPlayAudio-wireless-candidate.so';candidate.write_bytes(data)
     result={'original_sha256':EXPECTED,'candidate_sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data),'patch_code_start':START,'patch_code_end':START+len(code),'functions':{k:v for k,v in symbols.items() if k.startswith('capability_')},'wireless_transport_argument':1,'wired_original_path_retained':True,'metadata_only_diagnostic':metadata,'main_high_media_row':main_high,'deployed':False,'note':'Candidate only. Must pass offline matrix and controlled live trial; no runtime authentication or media changes.'}
     result['media_latency_row']=media_latency
     result['media_pcm_drain']=drain_media
@@ -391,6 +396,6 @@ capability_match_type:
         result['pcm_status_abi']={'bytes':108,'ioctl':0x806c4120,'state_offset':0,'delay_offset':28}
         result['drain_metadata_file']='/data/local/tmp/ev6-pcm'
     result['media_sample_rate']=48000 if media_48k else 44100
-    (HERE/'capability-candidate-manifest.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
+    (build/'capability-candidate-manifest.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=2))
 
 if __name__=='__main__':main()

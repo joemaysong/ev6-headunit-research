@@ -7,14 +7,13 @@ import json
 import struct
 import sys
 from pathlib import Path
-sys.path.insert(0, '/tmp/ev6-native-analysis')
 from elftools.elf.elffile import ELFFile
 from unicorn import Uc, UC_ARCH_ARM, UC_MODE_THUMB, UC_HOOK_INTR
 from unicorn.arm_const import *
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from audio_trial import decode_capability_records
+from metadata import decode_capability_records
 
-HERE = Path(__file__).resolve().parent
+if len(sys.argv)!=2:raise SystemExit('Usage: test_media_drain.py /private-work/audio-build')
+HERE = Path(sys.argv[1]).resolve()
 MANIFEST = json.loads((HERE/'capability-candidate-manifest.json').read_text())
 
 
