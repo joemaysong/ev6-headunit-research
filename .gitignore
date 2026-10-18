@@ -49,3 +49,8 @@ carplay/assets/wl-stations
 carplay/assets/detach-overlays
 carplay/evidence/
 carplay/previous-validated-final1/
+
+**/private-*/
+**/timeline-build/
+**/timeline.jar
+**/private-captures/
