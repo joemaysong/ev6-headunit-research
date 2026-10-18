@@ -1,45 +1,18 @@
-# EV6 Head Unit Research — final
+# EV6 Head Unit Research — V16 final
 
-The owner-selected final is **2026.10.18-manual-handoff-final**, frozen on October 18, 2026
-(Asia/Taipei). It preserves the currently installed working combination.
-The owner will perform further switching tests. Final designation does not
-mark unresolved scenarios passed.
+Owner-selected final: **2026.10.18-v16-final**, October18,2026 (Asia/Taipei).
 
-## Current changes
+## Current working combination
 
-- Original iAP2/MFi and PhoneProjection control/disconnect ownership retained.
-- Prior AP cleanup timing, scoped network integration and PCM drain retained.
-- Original wired preflight continuations are observed separately from delegated
-  player work; only same-target Wired=0 rejected preflights qualify.
-- Explicit native-UI selection can stop an observed original active session
-  through disconnectPP, wait for genuine finalization, then connect the next
-  device. Automatic connections still preserve an active session.
-- Guarded manual iAP2 recovery preserves healthy/in-progress original links.
+- V13 separates device identity, requests, local session generations and negotiated transport. Late callbacks do not complete successor requests.
+- V14 controller and in-process Bluetooth exact-work bridge preserve original cancellation and guard receiver/work identity. Positive exact-cancel dispatch remains unexercised; it is not claimed accepted.
+- V16 USB identification requests wait for a fresh original Wired **Added or Updated** callback, matching USB/intent generation, device identity and current OEM controller object. Original request API, error/retry handling and active-session behavior are preserved.
+- Existing PCM drain, original iAP2/MFi and PhoneProjection ownership remain.
 
-## Observed behavior and limits
+Targeted Added and Updated wired starts both returned first native OK and established an identity-verified wired session, with no INVALID_ARGUMENT, Phone is not responding or OEM USB reset. Unplug finalized the exact sessions. The owner later reported normal free switching. This is scoped evidence, not exhaustive switching or Apple/MFi certification.
 
-The owner reported successful X wired -> 15 Pro wireless selection while X
-remained plugged in. Controller events show original stop/finalization before
-new setup; selected native, backend and OEM association agreed and observer
-uncertainty stayed false. Latest screen/App operability was not separately
-confirmed.
+## Build, recovery and diagnostics
 
-**Known limitation:** the original Device Connections list can omit an inactive
-USB-only phone that is not Bluetooth paired. USB list expansion was stopped
-without deployment. Reverse selection and same-phone USB/wireless behavior
-remain open owner tests. No full Apple/MFi certification is claimed.
+See [build guide](docs/11-build-and-deployment.md), [validation](docs/12-validation-and-open-issues.md), [recovery](docs/13-rollback-and-porting.md), [diagnostic reconstruction](docs/15-diagnostics-and-retention.md) and [owner checklist](docs/16-owner-switching-tests.md).
 
-## Documentation
-
-- [Architecture](docs/06-carplay-architecture.md)
-- [Build and private inputs](docs/11-build-and-deployment.md)
-- [Validation scope](docs/12-validation-and-open-issues.md)
-- [Original backups and recovery](docs/13-rollback-and-porting.md)
-- [Recreate diagnostics](docs/15-diagnostics-and-retention.md)
-- [Owner switching checklist](docs/16-owner-switching-tests.md)
-- [Public technical references](docs/14-references.md)
-
-Only English project text/source is published. No IMG, firmware, APK/ODEX/DEX/SO/
-JAR, signing key/certificate, Wi-Fi credential, pairing database, raw diagnostic
-data, private device identifier or proprietary OEM decompilation is distributed.
-Exact final assets and original recovery inputs stay private. See [SECURITY.md](SECURITY.md).
+Only project-authored English source and text are published. No OEM decompilation, firmware, IMG, APK/ODEX/DEX/SO/JAR, signing key/certificate, credentials, pairing databases, raw captures or private identifiers are distributed. Exact final assets and original backups remain private. Embedded observation/work bridges are runtime dependencies; standalone test recorders are optional and disposable.
