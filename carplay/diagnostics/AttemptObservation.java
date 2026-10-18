@@ -18,6 +18,50 @@ public final class AttemptObservation {
     private boolean submissionStarted,canceledBeforeDispatch;
     // Bounded cause bits for read-only diagnosis; no identities or event log.
     private int uncertaintyReasons;
+    // SessionLedger owns correlation only. Legacy PP counters below remain
+    // diagnostic facts; no PP sequence is treated as a native session ID.
+    private final SessionLedger sessions=new SessionLedger();
+    private boolean transportBoundary;
+    public synchronized void enteringTransportCall(int type,String address) {
+        changed();sessions.enteringCall(type,address);
+    }
+    private void transportDelegated(String address) {sessions.delegated(address);}
+    private void transportCallReturned(boolean normal,String result) {sessions.returnedCall(normal,result);}
+    public synchronized long sessionInitializing() {changed();return sessions.enteringInitialization();}
+    public synchronized void sessionInitializedReturned(long token,boolean normal) {
+        changed();sessions.returnedInitialization(token,normal);
+    }
+    public synchronized long enteringSessionDetails() {changed();return sessions.enteringDetails();}
+    public synchronized void returnedSessionDetails(long token,String deviceID,boolean normal) {
+        changed();sessions.returnedDetails(token,deviceID,normal);
+    }
+    public synchronized long enteringSessionStart() {changed();return sessions.enteringStart();}
+    public synchronized void sessionStarted(long token,int actual,boolean normal) {
+        changed();sessions.returnedStart(token,actual,normal);
+    }
+    public synchronized long enteringTransportFinalized(int actual) {
+        changed();return sessions.enteringFinalization(actual);
+    }
+    public synchronized void returnedTransportFinalized(long token,boolean normal) {
+        changed();sessions.returnedFinalization(token,normal);
+    }
+    public synchronized long enteringFailedWiredRemoval(String address) {
+        changed();return sessions.enteringFailedWiredRemoval(address);
+    }
+    public synchronized void returnedFailedWiredRemoval(long token,boolean normal) {
+        changed();sessions.returnedFailedWiredRemoval(token,normal);
+    }
+    private boolean transportsSettled() {
+        return sessions.settled() && transportBoundary
+            && dispatches==0 && connectCalls==0 && queued==0
+            && (reentryIntent==0 || reentryIntent==2) && (uncertaintyReasons & (4|8|64|128))==0;
+    }
+    // Only rejected preflight predecessors with NO player delegation may be
+    // discharged by a later exact finalized receipt. Other lost attribution
+    // remains a process-lifetime fault; an empty queue is not a recovery proof.
+    private boolean orderingRecoverable=true;
+    private long finalizedSequence=-1;
+    private int finalizedEntries=-1;
     private int transport=-1,preflightContinuations;
     // Last submission predecessor facts, bounded and without peer identifiers.
     private boolean previousSameTarget,previousReturned,previousRejected,
@@ -35,7 +79,7 @@ public final class AttemptObservation {
             throw new IllegalArgumentException("Receiver generation required");
         receiver=receiverGeneration;
     }
-    private void changed() { revision++;boundaryRevision=-1; }
+    private void changed() { revision++;boundaryRevision=-1;transportBoundary=false; }
     private boolean current(String generation,long attempt) {
         return receiver.equals(generation) && sequence==attempt && attempt>0;
     }
@@ -56,10 +100,25 @@ public final class AttemptObservation {
             && transport==0 && originalTransport==0 && previousSameTarget
             && returned && submissionHandled && rejected && delegateEntries==0 && connectCalls==0;
         if(wiredPreflightContinuation)preflightContinuations++;
+        // A successor may be enqueued from an outer OEM callback after the
+        // inner finalization returned. Preserve all live dispatch counts;
+        // don't confuse that enqueue ordering with a still-live session.
+        boolean finalizedContinuation=sequence>0 && !unknown && previousSameTarget
+            && returned && terminal && finalizedSequence==sequence
+            && finalizedEntries==connectEntries && connectCalls==0 && queued==0;
         boolean priorUnfinished=sequence>0 && settledSequence!=sequence
-            && removedUnstartedSequence!=sequence && !wiredPreflightContinuation;
+            && removedUnstartedSequence!=sequence && !wiredPreflightContinuation && !finalizedContinuation;
+        // Consume only a receipt whose provenance was retained from first fault.
+        // Never recover an inherited/opaque ambiguity from queue emptiness.
+        boolean recovered=recoveryReady();
         changed();sequence++;target=address==null?"":address;transport=originalTransport;
-        if(priorUnfinished)uncertain(1);
+        if(recovered){unknown=false;uncertaintyReasons=0;orderingRecoverable=true;}
+        finalizedSequence=-1;finalizedEntries=-1;
+        if(priorUnfinished && !recovered) {
+            if(!(previousReturned && previousHandled && previousRejected
+                && previousDelegates==0 && previousCalls==0))orderingRecoverable=false;
+            uncertain(1);
+        }
         if(target.length()==0)uncertain(2);
         returned=false;terminal=false;queued=ALL;reentryIntent=3;
         settledSequence=-1;removedUnstartedSequence=-1;submissionStarted=false;canceledBeforeDispatch=false;connectEntries=0;delegateEntries=0;submissionHandled=false;rejected=false;
@@ -104,6 +163,7 @@ public final class AttemptObservation {
      * This is not a native-call count or a successful-control acknowledgement.
      */
     public synchronized void enteredDelegate(String address) {
+        transportDelegated(address);
         changed();canceledBeforeDispatch=false;delegateEntries++;settledSequence=-1;removedUnstartedSequence=-1;
         if(sequence==0 || !target.equals(address) || connectCalls!=1 || dispatches==0)uncertain(32);
     }
@@ -111,6 +171,7 @@ public final class AttemptObservation {
         returnedConnect(normal,"UNOBSERVED");
     }
     public synchronized void returnedConnect(boolean normal,String result) {
+        transportCallReturned(normal,result);
         changed();
         if(connectCalls==0)uncertain(4);else connectCalls--;
         if(normal){
@@ -132,6 +193,19 @@ public final class AttemptObservation {
         if(!current(generation,attempt))return;
         changed();terminal=true;
     }
+    /** Full original onSessionFinalized returned normally for this exact token.
+     * Inner dipoFinalized and timeout callbacks never issue this receipt. */
+    public synchronized void finalizedReturned(String generation,long attempt) {
+        if(!current(generation,attempt))return;
+        changed();finalizedSequence=sequence;finalizedEntries=connectEntries;
+    }
+    private boolean recoveryReady() {
+        return sequence>0 && unknown && uncertaintyReasons==1 && orderingRecoverable
+            && returned && terminal && submissionHandled && connectEntries>0
+            && finalizedSequence==sequence && finalizedEntries==connectEntries
+            && dispatches==0 && connectCalls==0 && queued==0
+            && boundaryRevision==revision && (reentryIntent==0 || reentryIntent==2);
+    }
     /** On the original Handler after dispatch; the bridge supplies hasMessages.
      * This cannot be inferred from an empty out-of-process queue sample.
      */
@@ -140,13 +214,14 @@ public final class AttemptObservation {
     }
     public synchronized void handlerBoundary(String generation,long attempt,int queuedMask,int intentMask) {
         if(!receiver.equals(generation) || sequence!=attempt || attempt<0)return;
-        changed();
+        if(queuedMask!=queued || intentMask!=reentryIntent || boundaryRevision!=revision)changed();
         if(queuedMask<0 || (queuedMask & ~ALL)!=0 || intentMask<0 || intentMask>3) {uncertain(64);queued=ALL;return;}
         queued=queuedMask;reentryIntent=intentMask;
         if(queued!=0)settledSequence=-1;
-        if(dispatches==0 && connectCalls==0)boundaryRevision=revision;
+        if(dispatches==0 && connectCalls==0){boundaryRevision=revision;transportBoundary=true;}
         if(workSettled())settledSequence=sequence;
     }
+    public synchronized void correlationUncertain() {changed();uncertain(16);}
     public synchronized void observationFailed() {changed();uncertain(128);}
     private boolean workSettled() {
         return sequence>0 && !unknown && returned && (terminal || canceledBeforeDispatch || (submissionHandled && rejected)) && dispatches==0
@@ -160,15 +235,31 @@ public final class AttemptObservation {
     public synchronized Snapshot snapshot() {
         return new Snapshot(receiver,sequence,revision,target,dispatches,connectCalls,
             queued,unknown,complete(),reentryIntent,workSettled(),connectEntries,
-            workSettled() && submissionHandled && rejected && delegateEntries==0);
+            workSettled() && submissionHandled && rejected && delegateEntries==0,uncertaintyReasons,recoveryReady(),
+            sessions.openMask(),sessions.history(),transportsSettled(),sessions.retirements(),
+            sessions.actualTransport(),sessions.epoch(),sessions.mismatches(),sessions.pendingMask(),
+            sessions.repeats(),sessions.unknownBindings(),sessions.modes(),sessions.mixed(),sessions.identityVerified(),
+            sessions.blockers(),sessions.confidence(),sessions.sessionTarget(),sessions.requestCount(),
+            sessions.acceptedCount(),sessions.rejectedCount(),sessions.lastFinalizedEpoch(),sessions.lastFinalizedTarget());
     }
     public static final class Snapshot {
         public final String receiver,target;
-        public final long sequence,revision;
-        public final int dispatches,connectCalls,queued,reentryIntent,connectEntries;
-        public final boolean unknown,complete,workSettled,preflightRejected;
-        Snapshot(String g,long s,long r,String t,int d,int n,int q,boolean u,boolean c,int i,boolean w,int e,boolean p) {
-            receiver=g;sequence=s;revision=r;target=t;dispatches=d;connectCalls=n;
+        public final long sequence,revision,sessionEpoch;
+        public final int dispatches,connectCalls,queued,reentryIntent,connectEntries,uncertaintyReasons,transportOpenMask,transportFault,failedWiredRetirements,actualSessionTransport,requestActualMismatches;
+        public final boolean unknown,complete,workSettled,preflightRejected,recoveryReady,transportsSettled;
+        public final int pendingRequestMask,repeatedPendingRequests,unknownRequestBindings,groupRequestedModes,mixedPendingRequests;
+        public final boolean sessionIdentityVerified;
+        public final int transportBlocker,lifecycleConfidence,requestCount,acceptedRequests,rejectedRequests;
+        public final String sessionTarget,lastFinalizedTarget;
+        public final long lastFinalizedEpoch;
+        Snapshot(String g,long s,long r,String t,int d,int n,int q,boolean u,boolean c,int i,boolean w,int e,boolean p,int reasons,boolean recovery,int open,int fault,boolean settled,int retired,int actual,long epoch,int mismatches,int pending,int repeats,int unknownBindings,int modes,int mixed,boolean verified,int blocker,int confidence,String sessionTarget,int requests,int accepted,int rejected,long finalizedEpoch,String finalizedTarget) {
+            lastFinalizedEpoch=finalizedEpoch;lastFinalizedTarget=finalizedTarget;
+            transportBlocker=blocker;lifecycleConfidence=confidence;this.sessionTarget=sessionTarget;
+            requestCount=requests;acceptedRequests=accepted;rejectedRequests=rejected;
+            groupRequestedModes=modes;mixedPendingRequests=mixed;sessionIdentityVerified=verified;
+            pendingRequestMask=pending;repeatedPendingRequests=repeats;unknownRequestBindings=unknownBindings;
+            actualSessionTransport=actual;sessionEpoch=epoch;requestActualMismatches=mismatches;failedWiredRetirements=retired;transportOpenMask=open;transportFault=fault;transportsSettled=settled;
+            receiver=g;sequence=s;revision=r;target=t;uncertaintyReasons=reasons;recoveryReady=recovery;dispatches=d;connectCalls=n;
             queued=q;unknown=u;complete=c;reentryIntent=i;workSettled=w;connectEntries=e;preflightRejected=p;
         }
         public boolean matches(String generation,long attempt,String address) {

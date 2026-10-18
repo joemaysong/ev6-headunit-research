@@ -11,7 +11,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /** Prototype private observation transport, not installed or an OEM API.
- * It never submits, cancels, removes, reconnects, or changes native/session state.
+ * It never submits/cancels/removes OEM work or changes native/session state.
+ * It posts and retires only its own diagnostic Runnable by exact object identity.
  */
 public final class EV6OemAttemptBridge {
     private static final Object LOCK=new Object();
@@ -20,7 +21,7 @@ public final class EV6OemAttemptBridge {
     private static volatile LocalServerSocket activeListener;
     private static long owners;
     private static final int[] CODES={0x2c,0x2d,0x30,0x31,0x39,0x3a,0x12,0x18,0x35,0x5,0xe};
-    private static final String UNKNOWN="EV6ATTEMPT4|UNKNOWN\n";
+    private static final String UNKNOWN="EV6ATTEMPT13|UNKNOWN\n";
     private static volatile int acceptedDescriptorRepairs;
     private static final class Owner {
         final Object service;
@@ -36,6 +37,8 @@ public final class EV6OemAttemptBridge {
     private static final class Probe {
         final CountDownLatch done=new CountDownLatch(1);
         AttemptObservation.Snapshot answer;
+        long wiredGateRevision;
+        Runnable task;
     }
     private static Owner owner(Object service) {
         Owner o=current;return o!=null && o.service==service?o:null;
@@ -71,7 +74,7 @@ public final class EV6OemAttemptBridge {
             synchronized(LOCK){if(created!=null && current==created)current=null;}
         }
     }
-    public static void release(Object service) {
+    private static void observed_release(Object service) {
         synchronized(LOCK) {
             Owner o=owner(service);
             if(o!=null){o.state.observationFailed();current=null;}
@@ -106,7 +109,7 @@ public final class EV6OemAttemptBridge {
             if(!posted){o.boundaryPending=false;o.state.observationFailed();}
         }
     }
-    public static void submitted(Object service,String address) {submitted(service,address,-1);}
+    private static void observed_submitted(Object service,String address) {submitted(service,address,-1);}
     private static void submitted(Object service,String address,int transport) {
         Owner o=owner(service);if(o==null)return;
         try {
@@ -115,7 +118,7 @@ public final class EV6OemAttemptBridge {
             o.state.submitted(target,transport);
         }catch(RuntimeException failure){o.state.observationFailed();}
     }
-    public static void enteredDispatch(Object service) {
+    private static void observed_enteredDispatch(Object service) {
         Owner o=owner(service);if(o!=null)o.state.enteredDispatch();
     }
     private static boolean controlMessage(Message message) {
@@ -123,13 +126,13 @@ public final class EV6OemAttemptBridge {
         for(int what:CODES)if(message.what==what)return true;
         return false;
     }
-    public static void enteredDispatch(Object service,Message message) {
+    private static void observed_enteredDispatch(Object service,Message message) {
         Owner o=owner(service);if(o!=null) {
             if(message!=null && message.what==0x2c)o.state.submissionStarted();
             o.state.enteredDispatch(controlMessage(message));
         }
     }
-    public static void exitedDispatch(Object service,Message message,boolean normal) {
+    private static void observed_exitedDispatch(Object service,Message message,boolean normal) {
         Owner o=owner(service);if(o==null)return;
         // The hook is after the ENTIRE original handleMessage has returned.
         // A log/broadcast inside onWCPConnectionTimeout cannot call this hook.
@@ -141,18 +144,18 @@ public final class EV6OemAttemptBridge {
         o.state.exitedDispatch(normal);
         boundaryAfterWork(o);
     }
-    public static void enteredConnect(Object service,String address) {
+    private static void observed_enteredTransportConnect(Object service,String address,int transport) {
         Owner o=owner(service);
-        if(o!=null)o.state.enteredConnect(address==null?null:address.toUpperCase(Locale.US));
+        if(o!=null){o.state.enteringTransportCall(transport,address==null?null:address.toUpperCase(Locale.US));o.state.enteredConnect(address==null?null:address.toUpperCase(Locale.US));}
     }
-    public static void returnedConnect(Object service,boolean normal) {
+    private static void observed_returnedConnect(Object service,boolean normal) {
         Owner o=owner(service);if(o!=null)o.state.returnedConnect(normal);
     }
-    public static void enteredDelegate(Object service,String address) {
+    private static void observed_enteredDelegate(Object service,String address) {
         Owner o=owner(service);
         if(o!=null)o.state.enteredDelegate(address==null?null:address.toUpperCase(Locale.US));
     }
-    public static void returnedConnect(Object service,Object result,boolean normal) {
+    private static void observed_returnedConnect(Object service,Object result,boolean normal) {
         Owner o=owner(service);if(o==null)return;
         String name=result instanceof Enum?((Enum<?>)result).name():"UNOBSERVED";
         o.state.returnedConnect(normal,name);
@@ -161,7 +164,7 @@ public final class EV6OemAttemptBridge {
      * Handler thread. Root queries cannot mistake a not-yet-committed post
      * for an empty queue. The original Message and uptime are untouched.
      */
-    public static long enteredQueue(Object service,Message message) {
+    private static long observed_enteredQueue(Object service,Message message) {
         Owner o=owner(service);if(o==null || !controlMessage(message))return -1;
         // Observe the shared original queue boundary, including original
         // producers that do not pass through PPActionListener. Never change
@@ -174,22 +177,22 @@ public final class EV6OemAttemptBridge {
         }
         long token=o.state.snapshot().sequence;o.state.enteredDispatch();return token;
     }
-    public static void exitedQueue(Object service,long token,boolean accepted) {
+    private static void observed_exitedQueue(Object service,long token,boolean accepted) {
         Owner o=owner(service);
         if(o!=null && token>=0){o.state.exitedDispatch(accepted);boundaryAfterWork(o);}
     }
     /** onControllerAdded may produce a NEW request. Keep a historical settled
      * receipt until actual queue/control work invalidates it. In-flight event
      * bracketing still blocks every live completion/release bit. */
-    public static long enteredControllerAdded(Object service) {
+    private static long observed_enteredControllerAdded(Object service) {
         Owner o=owner(service);if(o==null)return -1;
         boundaryNow(o);
         long sequence=o.state.snapshot().sequence;
         o.state.enteredDispatch(false);return sequence;
     }
-    /** Observe only genuine original pending-request removal. No cancellation
+    /** Observe only genuine original endpoint-group removal. No cancellation
      * is issued here. A running dispatch cannot qualify as never-started. */
-    public static long enteredRemoval(Object service,int what) {
+    private static long observed_enteredRemoval(Object service,int what) {
         Owner o=owner(service);if(o==null)return -1;
         try {
             long token=(what==0x2c || what==-1) && o.handler.hasMessages(0x2c)
@@ -197,32 +200,94 @@ public final class EV6OemAttemptBridge {
             o.state.enteredDispatch(false);return token;
         }catch(RuntimeException failure){o.state.observationFailed();return -1;}
     }
-    public static void exitedRemoval(Object service,long token,boolean normal) {
+    private static void observed_exitedRemoval(Object service,long token,boolean normal) {
         Owner o=owner(service);if(o==null || token<0)return;
         if(normal && token>0)o.state.submissionRemoved(token);
         o.state.exitedDispatch(normal);boundaryAfterWork(o);
     }
-    public static long enteredEvent(Object service) {
+    private static long observed_enteredEvent(Object service) {
         Owner o=owner(service);if(o==null)return -1;
         long sequence=o.state.snapshot().sequence;o.state.enteredDispatch();return sequence;
     }
-    public static long enteredCancelEvent(Object service,String address) {
+    private static long observed_enteredCancelEvent(Object service,String address) {
         Owner o=owner(service);if(o==null)return -1;
         AttemptObservation.Snapshot s=o.state.snapshot();
-        if(s.sequence==0)return -1;
-        if(address==null || !s.target.equalsIgnoreCase(address)) {
-            o.state.observationFailed();return -1;
+        if(s.sequence==0 || address==null || !s.target.equalsIgnoreCase(address)) {
+            // Other OEM producers may cancel another PP target. Bracket its
+            // real work but do not give this callback our terminal receipt.
+            if(s.sequence>0)o.state.correlationUncertain();
+            o.state.enteredDispatch();return -2;
         }
         o.state.enteredDispatch();return s.sequence;
     }
-    public static void exitedEvent(Object service,long sequence,boolean terminal,boolean normal) {
-        Owner o=owner(service);if(o==null || sequence<0)return;
-        if(terminal && normal) {
+    private static void observed_exitedEvent(Object service,long sequence,boolean terminal,boolean normal) {
+        Owner o=owner(service);if(o==null || sequence==-1)return;
+        if(terminal && normal && sequence>0) {
             AttemptObservation.Snapshot s=o.state.snapshot();
             o.state.terminalReturned(s.receiver,sequence);
         }
         o.state.exitedDispatch(normal);
         boundaryAfterWork(o);
+    }
+    private static long observed_enteredControllerRemoval(Object service,String address) {
+        Owner o=owner(service);if(o==null)return -1;
+        long token=o.state.enteringFailedWiredRemoval(address);
+        o.state.enteredDispatch();return token;
+    }
+    private static void observed_exitedControllerRemoval(Object service,long token,boolean terminal,boolean normal) {
+        Owner o=owner(service);if(o==null)return;
+        o.state.returnedFailedWiredRemoval(token,normal);
+        o.state.exitedDispatch(normal);boundaryAfterWork(o);
+    }
+    private static int actualTransport(Object transport) {
+        if(transport instanceof Enum) {
+            String name=((Enum<?>)transport).name();
+            if(name.equals("Wired"))return 0;if(name.equals("Wireless"))return 1;
+            if(name.equals("Unknown"))return 2;
+        }
+        return -1;
+    }
+    private static long observed_enteredSessionInitialized(Object service) {
+        Owner o=owner(service);if(o==null)return -1;
+        o.state.enteredDispatch(false);return o.state.sessionInitializing();
+    }
+    private static void observed_exitedSessionInitialized(Object service,long epoch,boolean terminal,boolean normal) {
+        Owner o=owner(service);if(o==null)return;
+        o.state.sessionInitializedReturned(epoch,normal);
+        o.state.exitedDispatch(normal);boundaryAfterWork(o);
+    }
+    private static long observed_enteredSessionDetails(Object service) {
+        Owner o=owner(service);if(o==null)return -1;
+        o.state.enteredDispatch(false);return o.state.enteringSessionDetails();
+    }
+    private static void observed_exitedSessionDetails(Object service,long epoch,String deviceID,boolean normal) {
+        Owner o=owner(service);if(o==null)return;
+        o.state.returnedSessionDetails(epoch,deviceID,normal);
+        o.state.exitedDispatch(normal);boundaryAfterWork(o);
+    }
+    private static long observed_enteredSessionStarted(Object service) {
+        Owner o=owner(service);if(o==null)return -1;
+        o.state.enteredDispatch(false);return o.state.enteringSessionStart();
+    }
+    private static void observed_exitedSessionStarted(Object service,long token,Object transport,boolean normal) {
+        Owner o=owner(service);if(o==null)return;
+        o.state.sessionStarted(token,actualTransport(transport),normal);
+        o.state.exitedDispatch(normal);boundaryAfterWork(o);
+    }
+    private static long observed_enteredTransportFinalized(Object service,Object transport) {
+        Owner o=owner(service);if(o==null)return -1;
+        int type=-1;
+        if(transport instanceof Enum) {
+            String name=((Enum<?>)transport).name();
+            if(name.equals("Wired"))type=0;else if(name.equals("Wireless"))type=1;else if(name.equals("Unknown"))type=2;
+        }
+        long token=o.state.enteringTransportFinalized(type);
+        o.state.enteredDispatch(false);return token;
+    }
+    private static void observed_exitedFinalizedEvent(Object service,long token,boolean terminal,boolean normal) {
+        Owner o=owner(service);if(o==null)return;
+        o.state.returnedTransportFinalized(token,normal);
+        o.state.exitedDispatch(normal);boundaryAfterWork(o);
     }
     private static String query(final Owner o) throws Exception {
         if(o==null)return UNKNOWN;
@@ -230,9 +295,11 @@ public final class EV6OemAttemptBridge {
         // A timed-out root query reuses that slot rather than growing its queue.
         if(o.pending==null) {
             final Probe probe=new Probe();o.pending=probe;
-            boolean posted=o.handler.post(new Runnable(){public void run(){
+            probe.task=new Runnable(){public void run(){
             try {
                 if(current!=o || Thread.currentThread()!=o.handler.getLooper().getThread())return;
+                if(EV6WiredControllerGate.pending(o.service))return;
+                probe.wiredGateRevision=EV6WiredControllerGate.revision(o.service);
                 int mask=0;
                 for(int index=0;index<CODES.length;index++)
                     if(o.handler.hasMessages(CODES[index]))mask|=1<<index;
@@ -241,20 +308,33 @@ public final class EV6OemAttemptBridge {
                 if(current==o)probe.answer=o.state.snapshot();
             }catch(RuntimeException failure){o.state.observationFailed();}
             finally{probe.done.countDown();}
-            }});
-            if(!posted){o.pending=null;return UNKNOWN;}
+            }};
+            boolean posted=o.handler.post(probe.task);
+            if(!posted){if(o.pending==probe)o.pending=null;return UNKNOWN;}
         }
         Probe probe=o.pending;
         // Wait only on this observer worker. Never wait on the original Handler.
-        if(!probe.done.await(1500,TimeUnit.MILLISECONDS))return UNKNOWN;
-        o.pending=null;
+        if(!probe.done.await(1500,TimeUnit.MILLISECONDS)) {
+            // OEM removeCallbacksAndMessages(null) may have discarded OUR
+            // Runnable. Retire only that exact diagnostic task. Timeout is
+            // NEVER a completion receipt or permission to release OEM work.
+            try{o.handler.removeCallbacks(probe.task);}
+            finally{if(o.pending==probe)o.pending=null;}
+            return UNKNOWN;
+        }
+        if(o.pending==probe)o.pending=null;
         if(current!=o || probe.answer==null)
             return UNKNOWN;
         AttemptObservation.Snapshot s=probe.answer;
         if(o.state.snapshot().revision!=s.revision)return UNKNOWN;
-        return "EV6ATTEMPT4|"+s.receiver+"|"+s.sequence+"|"+s.revision+"|"+s.target+"|"
+        if(EV6WiredControllerGate.pending(o.service) || EV6WiredControllerGate.revision(o.service)!=probe.wiredGateRevision)return UNKNOWN;
+        return serialize(s);
+    }
+    static String serialize(AttemptObservation.Snapshot s) {
+        return "EV6ATTEMPT13|"+s.receiver+"|"+s.sequence+"|"+s.revision+"|"+s.target+"|"
             +s.dispatches+"|"+s.connectCalls+"|"+s.queued+"|"+s.unknown+"|"+s.complete+"|"+s.reentryIntent
-            +"|"+s.workSettled+"|"+s.connectEntries+"|"+s.preflightRejected+"\n";
+            +"|"+s.workSettled+"|"+s.connectEntries+"|"+s.preflightRejected+"|"+s.uncertaintyReasons+"|"+s.recoveryReady+"|"+s.transportOpenMask+"|"+s.transportFault+"|"+s.transportsSettled+"|"+s.failedWiredRetirements+"|"+s.actualSessionTransport+"|"+s.sessionEpoch+"|"+s.requestActualMismatches+"|"+s.pendingRequestMask+"|"+s.repeatedPendingRequests+"|"+s.unknownRequestBindings+"|"+s.groupRequestedModes+"|"+s.mixedPendingRequests+"|"+s.sessionIdentityVerified+"|"+s.transportBlocker+"|"+s.lifecycleConfidence+"|"+s.sessionTarget
+            +"|"+s.requestCount+"|"+s.acceptedRequests+"|"+s.rejectedRequests+"|"+s.lastFinalizedEpoch+"|"+s.lastFinalizedTarget+"\n";
     }
     /** Read exact original fields only; null has the original getters' empty
      * meaning. No original method invocation, field write or address output.
@@ -273,6 +353,118 @@ public final class EV6OemAttemptBridge {
             }
             return flags;
         }catch(Exception unavailable){return -1;}
+    }
+    private static void recordHookFailure(Object service) {
+        try {Owner o=owner(service);if(o!=null)o.state.observationFailed();}
+        catch(RuntimeException ignored) {/* Observation must not replace OEM execution. */}
+    }
+    public static void release(Object service) {
+        try {observed_release(service);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static void submitted(Object service,String address) {
+        try {observed_submitted(service,address);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static void enteredDispatch(Object service) {
+        try {observed_enteredDispatch(service);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static void enteredDispatch(Object service,Message message) {
+        try {observed_enteredDispatch(service,message);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static void exitedDispatch(Object service,Message message,boolean normal) {
+        try {observed_exitedDispatch(service,message,normal);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static void enteredTransportConnect(Object service,String address,int transport) {
+        try {observed_enteredTransportConnect(service,address,transport);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static void returnedConnect(Object service,boolean normal) {
+        try {observed_returnedConnect(service,normal);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static void enteredDelegate(Object service,String address) {
+        try {observed_enteredDelegate(service,address);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static void returnedConnect(Object service,Object result,boolean normal) {
+        try {observed_returnedConnect(service,result,normal);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static long enteredQueue(Object service,Message message) {
+        try {return observed_enteredQueue(service,message);}
+        catch(RuntimeException failure) {recordHookFailure(service);return -1;}
+    }
+    public static void exitedQueue(Object service,long token,boolean accepted) {
+        try {observed_exitedQueue(service,token,accepted);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static long enteredControllerAdded(Object service) {
+        try {return observed_enteredControllerAdded(service);}
+        catch(RuntimeException failure) {recordHookFailure(service);return -1;}
+    }
+    public static long enteredRemoval(Object service,int what) {
+        try {return observed_enteredRemoval(service,what);}
+        catch(RuntimeException failure) {recordHookFailure(service);return -1;}
+    }
+    public static void exitedRemoval(Object service,long token,boolean normal) {
+        try {observed_exitedRemoval(service,token,normal);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static long enteredEvent(Object service) {
+        try {return observed_enteredEvent(service);}
+        catch(RuntimeException failure) {recordHookFailure(service);return -1;}
+    }
+    public static long enteredCancelEvent(Object service,String address) {
+        try {return observed_enteredCancelEvent(service,address);}
+        catch(RuntimeException failure) {recordHookFailure(service);return -1;}
+    }
+    public static void exitedEvent(Object service,long sequence,boolean terminal,boolean normal) {
+        try {observed_exitedEvent(service,sequence,terminal,normal);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static long enteredControllerRemoval(Object service,String address) {
+        try {return observed_enteredControllerRemoval(service,address);}
+        catch(RuntimeException failure) {recordHookFailure(service);return -1;}
+    }
+    public static void exitedControllerRemoval(Object service,long token,boolean terminal,boolean normal) {
+        try {observed_exitedControllerRemoval(service,token,terminal,normal);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static long enteredSessionInitialized(Object service) {
+        try {return observed_enteredSessionInitialized(service);}
+        catch(RuntimeException failure) {recordHookFailure(service);return -1;}
+    }
+    public static void exitedSessionInitialized(Object service,long epoch,boolean terminal,boolean normal) {
+        try {observed_exitedSessionInitialized(service,epoch,terminal,normal);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static long enteredSessionDetails(Object service) {
+        try {return observed_enteredSessionDetails(service);}
+        catch(RuntimeException failure) {recordHookFailure(service);return -1;}
+    }
+    public static void exitedSessionDetails(Object service,long epoch,String deviceID,boolean normal) {
+        try {observed_exitedSessionDetails(service,epoch,deviceID,normal);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static long enteredSessionStarted(Object service) {
+        try {return observed_enteredSessionStarted(service);}
+        catch(RuntimeException failure) {recordHookFailure(service);return -1;}
+    }
+    public static void exitedSessionStarted(Object service,long token,Object transport,boolean normal) {
+        try {observed_exitedSessionStarted(service,token,transport,normal);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
+    }
+    public static long enteredTransportFinalized(Object service,Object transport) {
+        try {return observed_enteredTransportFinalized(service,transport);}
+        catch(RuntimeException failure) {recordHookFailure(service);return -1;}
+    }
+    public static void exitedFinalizedEvent(Object service,long token,boolean terminal,boolean normal) {
+        try {observed_exitedFinalizedEvent(service,token,terminal,normal);}
+        catch(RuntimeException failure) {recordHookFailure(service);}
     }
     private static void serve() {
         for(;;) {
