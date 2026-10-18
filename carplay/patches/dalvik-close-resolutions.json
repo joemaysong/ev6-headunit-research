@@ -1,0 +1,838 @@
+{
+  "format": 1,
+  "scope": "Reference original ODEX36 quick-close resolution contracts; compare the same raw method site and matching firmware dependencies. Never replace an original throw or guess from a method name.",
+  "sites": [
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/Utils.smali",
+      "method": "safeCloseStream(Ljava/io/InputStream;)V",
+      "canonical_method_line": 4,
+      "raw_instruction": "invoke-virtual-quick {p0}, vtable@12",
+      "resolved_instruction": "invoke-virtual {p0}, Ljava/io/InputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/Utils.smali",
+      "method": "safeCloseStream(Ljava/io/OutputStream;)V",
+      "canonical_method_line": 4,
+      "raw_instruction": "invoke-virtual-quick {p0}, vtable@12",
+      "resolved_instruction": "invoke-virtual {p0}, Ljava/io/OutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/map/BluetoothMapContent.smali",
+      "method": "readMmsDataPart(J)[B",
+      "canonical_method_line": 44,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/ByteArrayOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/map/BluetoothMapContent.smali",
+      "method": "readMmsDataPart(J)[B",
+      "canonical_method_line": 45,
+      "raw_instruction": "invoke-virtual-quick {v3}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v3}, Ljava/io/InputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/map/BluetoothMapContent.smali",
+      "method": "readMmsDataPart(J)[B",
+      "canonical_method_line": 58,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/ByteArrayOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/map/BluetoothMapContent.smali",
+      "method": "readMmsDataPart(J)[B",
+      "canonical_method_line": 59,
+      "raw_instruction": "invoke-virtual-quick {v3}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v3}, Ljava/io/InputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/map/BluetoothMapContent.smali",
+      "method": "readMmsDataPart(J)[B",
+      "canonical_method_line": 69,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/ByteArrayOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/map/BluetoothMapContent.smali",
+      "method": "readMmsDataPart(J)[B",
+      "canonical_method_line": 70,
+      "raw_instruction": "invoke-virtual-quick {v3}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v3}, Ljava/io/InputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/map/BluetoothMapContentObserver.smali",
+      "method": "writeMmsDataPart(JLcom/android/bluetooth/map/BluetoothMapbMessageMmsEmail$MimePart;I)V",
+      "canonical_method_line": 70,
+      "raw_instruction": "invoke-virtual-quick {v0}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v0}, Ljava/io/OutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/map/BluetoothMapSmsPdu$SmsPdu.smali",
+      "method": "cdmaGetParameterOffset(B)I",
+      "canonical_method_line": 21,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/ByteArrayInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/map/BluetoothMapSmsPdu$SmsPdu.smali",
+      "method": "cdmaGetSubParameterOffset(B)I",
+      "canonical_method_line": 25,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/ByteArrayInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/map/BluetoothMapbMessage.smali",
+      "method": "parse(Ljava/io/InputStream;I)Lcom/android/bluetooth/map/BluetoothMapbMessage;",
+      "canonical_method_line": 195,
+      "raw_instruction": "invoke-virtual-quick {p0}, vtable@12",
+      "resolved_instruction": "invoke-virtual {p0}, Ljava/io/InputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppLauncherActivity.smali",
+      "method": "creatFileForSharedContent(Landroid/content/Context;Ljava/lang/CharSequence;)Landroid/net/Uri;",
+      "canonical_method_line": 83,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppLauncherActivity.smali",
+      "method": "creatFileForSharedContent(Landroid/content/Context;Ljava/lang/CharSequence;)Landroid/net/Uri;",
+      "canonical_method_line": 113,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppLauncherActivity.smali",
+      "method": "creatFileForSharedContent(Landroid/content/Context;Ljava/lang/CharSequence;)Landroid/net/Uri;",
+      "canonical_method_line": 140,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppLauncherActivity.smali",
+      "method": "creatFileForSharedContent(Landroid/content/Context;Ljava/lang/CharSequence;)Landroid/net/Uri;",
+      "canonical_method_line": 167,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppLauncherActivity.smali",
+      "method": "creatFileForSharedContent(Landroid/content/Context;Ljava/lang/CharSequence;)Landroid/net/Uri;",
+      "canonical_method_line": 178,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppProvider.smali",
+      "method": "delete(Landroid/net/Uri;Ljava/lang/String;[Ljava/lang/String;)I",
+      "canonical_method_line": 82,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v1}, Landroid/database/sqlite/SQLiteClosable;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppProvider.smali",
+      "method": "insert(Landroid/net/Uri;Landroid/content/ContentValues;)Landroid/net/Uri;",
+      "canonical_method_line": 154,
+      "raw_instruction": "invoke-virtual-quick {v3}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v3}, Landroid/database/sqlite/SQLiteClosable;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppProvider.smali",
+      "method": "query(Landroid/net/Uri;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;",
+      "canonical_method_line": 53,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v1}, Landroid/database/sqlite/SQLiteClosable;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppProvider.smali",
+      "method": "update(Landroid/net/Uri;Landroid/content/ContentValues;Ljava/lang/String;[Ljava/lang/String;)I",
+      "canonical_method_line": 87,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v1}, Landroid/database/sqlite/SQLiteClosable;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppReceiveFileInfo.smali",
+      "method": "generateFileInfo(Landroid/content/Context;I)Lcom/android/bluetooth/opp/BluetoothOppReceiveFileInfo;",
+      "canonical_method_line": 208,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppRfcommListener.smali",
+      "method": "stop()V",
+      "canonical_method_line": 17,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@13",
+      "resolved_instruction": "invoke-virtual {v1}, Landroid/bluetooth/BluetoothServerSocket;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppSendFileInfo.smali",
+      "method": "generateFileInfo(Landroid/content/Context;Landroid/net/Uri;Ljava/lang/String;)Lcom/android/bluetooth/opp/BluetoothOppSendFileInfo;",
+      "canonical_method_line": 200,
+      "raw_instruction": "invoke-virtual-quick {v12}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v12}, Landroid/content/res/AssetFileDescriptor;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/opp/BluetoothOppUtility.smali",
+      "method": "closeSendFileInfo(Landroid/net/Uri;)V",
+      "canonical_method_line": 22,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v1}, Ljava/io/FileInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/power/HostPowerControl$1.smali",
+      "method": "run()V",
+      "canonical_method_line": 51,
+      "raw_instruction": "invoke-virtual-quick {v0}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v0}, Landroid/net/LocalServerSocket;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/power/HostPowerControl$1.smali",
+      "method": "run()V",
+      "canonical_method_line": 61,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v2}, Landroid/net/LocalServerSocket;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/power/HostPowerControl$1.smali",
+      "method": "run()V",
+      "canonical_method_line": 68,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Landroid/net/LocalSocket;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/power/HostPowerControl$1.smali",
+      "method": "run()V",
+      "canonical_method_line": 84,
+      "raw_instruction": "invoke-virtual-quick {v0}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v0}, Landroid/net/LocalSocket;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/power/HostPowerControl$1.smali",
+      "method": "run()V",
+      "canonical_method_line": 99,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v2}, Landroid/net/LocalServerSocket;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/power/HostPowerControl$1.smali",
+      "method": "run()V",
+      "canonical_method_line": 106,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Landroid/net/LocalSocket;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/power/HostPowerControl$1.smali",
+      "method": "run()V",
+      "canonical_method_line": 118,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v2}, Landroid/net/LocalServerSocket;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/power/HostPowerControl$1.smali",
+      "method": "run()V",
+      "canonical_method_line": 125,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Landroid/net/LocalSocket;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/vcrm/InfoBigDataUtils.smali",
+      "method": "closeUsageInfoBigDataToDisk()V",
+      "canonical_method_line": 10,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v1}, Ljava/io/BufferedWriter;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/vcrm/InfoBigDataUtils.smali",
+      "method": "readInfoBigDataToDisk(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+      "canonical_method_line": 43,
+      "raw_instruction": "invoke-virtual-quick {v8}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v8}, Ljava/io/BufferedReader;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/vcrm/InfoBigDataUtils.smali",
+      "method": "readInfoBigDataToDisk(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+      "canonical_method_line": 92,
+      "raw_instruction": "invoke-virtual-quick {v8}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v8}, Ljava/io/BufferedReader;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/vcrm/InfoBigDataUtils.smali",
+      "method": "readInfoBigDataToDisk(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+      "canonical_method_line": 109,
+      "raw_instruction": "invoke-virtual-quick {v9}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v9}, Ljava/io/BufferedReader;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/vcrm/InfoBigDataUtils.smali",
+      "method": "readInfoBigDataToDisk(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+      "canonical_method_line": 115,
+      "raw_instruction": "invoke-virtual-quick {v8}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v8}, Ljava/io/BufferedReader;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/vcrm/InfoBigDataUtils.smali",
+      "method": "writeInfoBigDataToDisk(Ljava/lang/String;Ljava/lang/String;)V",
+      "canonical_method_line": 69,
+      "raw_instruction": "invoke-virtual-quick {v9}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v9}, Ljava/io/BufferedWriter;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/vcrm/InfoBigDataUtils.smali",
+      "method": "writeInfoBigDataToDisk(Ljava/lang/String;Ljava/lang/String;)V",
+      "canonical_method_line": 75,
+      "raw_instruction": "invoke-virtual-quick {v8}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v8}, Ljava/io/BufferedWriter;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/android/bluetooth/vcrm/InfoBigDataUtils.smali",
+      "method": "writeInfoBigDataToDisk(Ljava/lang/String;Ljava/lang/String;)V",
+      "canonical_method_line": 100,
+      "raw_instruction": "invoke-virtual-quick {v8}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v8}, Ljava/io/BufferedWriter;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmRestoreSharedPreference(Ljava/lang/String;Ljava/lang/String;)Z",
+      "canonical_method_line": 110,
+      "raw_instruction": "invoke-virtual-quick {v9}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v9}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmRestoreSharedPreference(Ljava/lang/String;Ljava/lang/String;)Z",
+      "canonical_method_line": 117,
+      "raw_instruction": "invoke-virtual-quick {v6}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v6}, Ljava/io/FileInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmRestoreSharedPreference(Ljava/lang/String;Ljava/lang/String;)Z",
+      "canonical_method_line": 142,
+      "raw_instruction": "invoke-virtual-quick {v10}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v10}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmRestoreSharedPreference(Ljava/lang/String;Ljava/lang/String;)Z",
+      "canonical_method_line": 143,
+      "raw_instruction": "invoke-virtual-quick {v7}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v7}, Ljava/io/FileInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmRestoreSharedPreference(Ljava/lang/String;Ljava/lang/String;)Z",
+      "canonical_method_line": 151,
+      "raw_instruction": "invoke-virtual-quick {v9}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v9}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmRestoreSharedPreference(Ljava/lang/String;Ljava/lang/String;)Z",
+      "canonical_method_line": 158,
+      "raw_instruction": "invoke-virtual-quick {v6}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v6}, Ljava/io/FileInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmRestoreSharedPreference(Ljava/lang/String;Ljava/lang/String;)Z",
+      "canonical_method_line": 172,
+      "raw_instruction": "invoke-virtual-quick {v9}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v9}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmRestoreSharedPreference(Ljava/lang/String;Ljava/lang/String;)Z",
+      "canonical_method_line": 179,
+      "raw_instruction": "invoke-virtual-quick {v6}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v6}, Ljava/io/FileInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmUpdateBackupSharedPreference()Z",
+      "canonical_method_line": 82,
+      "raw_instruction": "invoke-virtual-quick {v7}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v7}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmUpdateBackupSharedPreference()Z",
+      "canonical_method_line": 89,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Ljava/io/FileInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmUpdateBackupSharedPreference()Z",
+      "canonical_method_line": 104,
+      "raw_instruction": "invoke-virtual-quick {v8}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v8}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmUpdateBackupSharedPreference()Z",
+      "canonical_method_line": 105,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmUpdateBackupSharedPreference()Z",
+      "canonical_method_line": 113,
+      "raw_instruction": "invoke-virtual-quick {v7}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v7}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmUpdateBackupSharedPreference()Z",
+      "canonical_method_line": 120,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Ljava/io/FileInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmUpdateBackupSharedPreference()Z",
+      "canonical_method_line": 134,
+      "raw_instruction": "invoke-virtual-quick {v7}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v7}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/btcmservice/receiver/HfDeviceStarterReceiver.smali",
+      "method": "btcmUpdateBackupSharedPreference()Z",
+      "canonical_method_line": 141,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Ljava/io/FileInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/opp/BluetoothOppLauncherActivity.smali",
+      "method": "creatFileForSharedContent(Landroid/content/Context;Ljava/lang/CharSequence;)Landroid/net/Uri;",
+      "canonical_method_line": 83,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/opp/BluetoothOppLauncherActivity.smali",
+      "method": "creatFileForSharedContent(Landroid/content/Context;Ljava/lang/CharSequence;)Landroid/net/Uri;",
+      "canonical_method_line": 113,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/opp/BluetoothOppLauncherActivity.smali",
+      "method": "creatFileForSharedContent(Landroid/content/Context;Ljava/lang/CharSequence;)Landroid/net/Uri;",
+      "canonical_method_line": 140,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/opp/BluetoothOppLauncherActivity.smali",
+      "method": "creatFileForSharedContent(Landroid/content/Context;Ljava/lang/CharSequence;)Landroid/net/Uri;",
+      "canonical_method_line": 167,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/opp/BluetoothOppLauncherActivity.smali",
+      "method": "creatFileForSharedContent(Landroid/content/Context;Ljava/lang/CharSequence;)Landroid/net/Uri;",
+      "canonical_method_line": 178,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/opp/BluetoothOppSendFileInfo.smali",
+      "method": "generateFileInfo(Landroid/content/Context;Landroid/net/Uri;Ljava/lang/String;)Lcom/broadcom/bt/service/opp/BluetoothOppSendFileInfo;",
+      "canonical_method_line": 141,
+      "raw_instruction": "invoke-virtual-quick {v11}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v11}, Landroid/content/res/AssetFileDescriptor;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/opp/BluetoothOppUtility.smali",
+      "method": "closeSendFileInfo(Landroid/net/Uri;)V",
+      "canonical_method_line": 24,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v1}, Landroid/content/res/AssetFileDescriptor;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "com/broadcom/bt/service/opp/OppReceiveFileInfo.smali",
+      "method": "genAbsPathAndMime(Ljava/lang/String;I)Lcom/broadcom/bt/service/opp/OppReceiveFileInfo;",
+      "canonical_method_line": 145,
+      "raw_instruction": "invoke-virtual-quick {v13}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v13}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "org/apache/log4j/AppenderSkeleton.smali",
+      "method": "finalize()V",
+      "canonical_method_line": 21,
+      "raw_instruction": "invoke-virtual-quick {p0}, vtable@27",
+      "resolved_instruction": "invoke-virtual {p0}, Lorg/apache/log4j/AppenderSkeleton;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "org/apache/log4j/FileAppender.smali",
+      "method": "closeFile()V",
+      "canonical_method_line": 6,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v1}, Ljava/io/FilterWriter;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "org/apache/log4j/WriterAppender.smali",
+      "method": "closeWriter()V",
+      "canonical_method_line": 6,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v1}, Ljava/io/FilterWriter;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "org/apache/log4j/helpers/MDCKeySetExtractor.smali",
+      "method": "getPropertyKeySet(Lorg/apache/log4j/spi/LoggingEvent;)Ljava/util/Set;",
+      "canonical_method_line": 25,
+      "raw_instruction": "invoke-virtual-quick {v5}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v5}, Ljava/io/ObjectOutputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "org/apache/log4j/helpers/MDCKeySetExtractor.smali",
+      "method": "getPropertyKeySet(Lorg/apache/log4j/spi/LoggingEvent;)Ljava/util/Set;",
+      "canonical_method_line": 65,
+      "raw_instruction": "invoke-virtual-quick {v3}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v3}, Ljava/io/ObjectInputStream;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "org/apache/log4j/helpers/SyslogWriter.smali",
+      "method": "close()V",
+      "canonical_method_line": 5,
+      "raw_instruction": "invoke-virtual-quick {v0}, vtable@13",
+      "resolved_instruction": "invoke-virtual {v0}, Ljava/net/DatagramSocket;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "org/apache/log4j/jdbc/JDBCAppender.smali",
+      "method": "finalize()V",
+      "canonical_method_line": 2,
+      "raw_instruction": "invoke-virtual-quick {p0}, vtable@27",
+      "resolved_instruction": "invoke-virtual {p0}, Lorg/apache/log4j/jdbc/JDBCAppender;->close()V"
+    },
+    {
+      "component": "bluetooth",
+      "class": "org/apache/log4j/varia/HUPNode.smali",
+      "method": "run()V",
+      "canonical_method_line": 30,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v2}, Ljava/io/FilterOutputStream;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/albumart/AlbumArtManager.smali",
+      "method": "saveBitmapToFile(Landroid/content/Context;[B)Z",
+      "canonical_method_line": 38,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/albumart/AlbumArtManager.smali",
+      "method": "saveBitmapToFile(Landroid/content/Context;[B)Z",
+      "canonical_method_line": 61,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/albumart/AlbumArtManager.smali",
+      "method": "saveBitmapToFile(Landroid/content/Context;[B)Z",
+      "canonical_method_line": 82,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/albumart/AlbumArtManager.smali",
+      "method": "saveBitmapToFile(Landroid/content/Context;[B)Z",
+      "canonical_method_line": 103,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/albumart/AlbumArtManager.smali",
+      "method": "saveBitmapToFile(Landroid/content/Context;[B)Z",
+      "canonical_method_line": 118,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/VcrmLog.smali",
+      "method": "close()V",
+      "canonical_method_line": 13,
+      "raw_instruction": "invoke-virtual-quick {v0}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v0}, Lcom/daudio/app/dipo/log/json/JsonManager;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "writeJsonToFile(Ljava/lang/String;Ljava/lang/String;Lorg/json/JSONObject;)Z",
+      "canonical_method_line": 68,
+      "raw_instruction": "invoke-virtual-quick {v9}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v9}, Ljava/io/OutputStreamWriter;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "writeJsonToFile(Ljava/lang/String;Ljava/lang/String;Lorg/json/JSONObject;)Z",
+      "canonical_method_line": 75,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v2}, Ljava/io/BufferedWriter;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "writeJsonToFile(Ljava/lang/String;Ljava/lang/String;Lorg/json/JSONObject;)Z",
+      "canonical_method_line": 182,
+      "raw_instruction": "invoke-virtual-quick {v8}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v8}, Ljava/io/OutputStreamWriter;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "writeJsonToFile(Ljava/lang/String;Ljava/lang/String;Lorg/json/JSONObject;)Z",
+      "canonical_method_line": 189,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v2}, Ljava/io/BufferedWriter;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "writeJsonToFile(Ljava/lang/String;Ljava/lang/String;Lorg/json/JSONObject;)Z",
+      "canonical_method_line": 207,
+      "raw_instruction": "invoke-virtual-quick {v8}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v8}, Ljava/io/OutputStreamWriter;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "writeJsonToFile(Ljava/lang/String;Ljava/lang/String;Lorg/json/JSONObject;)Z",
+      "canonical_method_line": 214,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@18",
+      "resolved_instruction": "invoke-virtual {v2}, Ljava/io/BufferedWriter;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "readJsonFromFile(Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;",
+      "canonical_method_line": 54,
+      "raw_instruction": "invoke-virtual-quick {v9}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v9}, Ljava/io/InputStreamReader;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "readJsonFromFile(Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;",
+      "canonical_method_line": 61,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v2}, Ljava/io/BufferedReader;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "readJsonFromFile(Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;",
+      "canonical_method_line": 186,
+      "raw_instruction": "invoke-virtual-quick {v9}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v9}, Ljava/io/InputStreamReader;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "readJsonFromFile(Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;",
+      "canonical_method_line": 193,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v2}, Ljava/io/BufferedReader;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "readJsonFromFile(Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;",
+      "canonical_method_line": 217,
+      "raw_instruction": "invoke-virtual-quick {v10}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v10}, Ljava/io/InputStreamReader;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "readJsonFromFile(Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;",
+      "canonical_method_line": 224,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v2}, Ljava/io/BufferedReader;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "readJsonFromFile(Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;",
+      "canonical_method_line": 241,
+      "raw_instruction": "invoke-virtual-quick {v10}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v10}, Ljava/io/InputStreamReader;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "readJsonFromFile(Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;",
+      "canonical_method_line": 248,
+      "raw_instruction": "invoke-virtual-quick {v3}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v3}, Ljava/io/BufferedReader;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "readJsonFromFile(Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;",
+      "canonical_method_line": 273,
+      "raw_instruction": "invoke-virtual-quick {v9}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v9}, Ljava/io/InputStreamReader;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/log/json/JsonVCRM.smali",
+      "method": "readJsonFromFile(Ljava/lang/String;Ljava/lang/String;)Lorg/json/JSONObject;",
+      "canonical_method_line": 280,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@11",
+      "resolved_instruction": "invoke-virtual {v2}, Ljava/io/BufferedReader;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/player/BluetoothAnalyzer$AcceptThread.smali",
+      "method": "cancel()V",
+      "canonical_method_line": 17,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@13",
+      "resolved_instruction": "invoke-virtual {v1}, Landroid/bluetooth/BluetoothServerSocket;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/player/BluetoothAnalyzer$AcceptThread.smali",
+      "method": "run()V",
+      "canonical_method_line": 149,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@14",
+      "resolved_instruction": "invoke-virtual {v1}, Landroid/bluetooth/BluetoothSocket;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/player/BluetoothAnalyzer$ConnectThread.smali",
+      "method": "cancel()V",
+      "canonical_method_line": 9,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@14",
+      "resolved_instruction": "invoke-virtual {v1}, Landroid/bluetooth/BluetoothSocket;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/player/BluetoothAnalyzer$ConnectThread.smali",
+      "method": "run()V",
+      "canonical_method_line": 60,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@14",
+      "resolved_instruction": "invoke-virtual {v2}, Landroid/bluetooth/BluetoothSocket;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/player/BluetoothAnalyzer$ConnectedThread.smali",
+      "method": "cancel()V",
+      "canonical_method_line": 24,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v1}, Ljava/io/OutputStream;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/player/BluetoothAnalyzer$ConnectedThread.smali",
+      "method": "cancel()V",
+      "canonical_method_line": 28,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v1}, Ljava/io/InputStream;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/player/BluetoothAnalyzer$ConnectedThread.smali",
+      "method": "cancel()V",
+      "canonical_method_line": 34,
+      "raw_instruction": "invoke-virtual-quick {v1}, vtable@14",
+      "resolved_instruction": "invoke-virtual {v1}, Landroid/bluetooth/BluetoothSocket;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/player/data/CarPlayDeviceInfo.smali",
+      "method": "getAssetsIconPath(Ljava/lang/String;)Ljava/lang/String;",
+      "canonical_method_line": 39,
+      "raw_instruction": "invoke-virtual-quick {v4}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v4}, Ljava/io/FileOutputStream;->close()V"
+    },
+    {
+      "component": "dipo",
+      "class": "com/daudio/app/dipo/player/data/CarPlayDeviceInfo.smali",
+      "method": "getAssetsIconPath(Ljava/lang/String;)Ljava/lang/String;",
+      "canonical_method_line": 40,
+      "raw_instruction": "invoke-virtual-quick {v2}, vtable@12",
+      "resolved_instruction": "invoke-virtual {v2}, Ljava/io/InputStream;->close()V"
+    }
+  ]
+}
