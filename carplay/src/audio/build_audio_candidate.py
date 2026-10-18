@@ -7,7 +7,7 @@ import subprocess
 import os
 import re
 import sys
-
+sys.path.insert(0, '/tmp/ev6-native-analysis')
 from elftools.elf.elffile import ELFFile
 from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB
 
@@ -360,7 +360,7 @@ capability_match_type:
     (HERE/'capability-candidate.S').write_text(asm)
     (HERE/'capability-candidate.ld').write_text('original_playback_close_continue = 0x5aa2; original_input_continue = 0x3ab0; original_output_continue = 0x3b78; original_formats_continue = 0x3e20; original_create_formats = 0x3cd0; original_latencies_continue = 0x30d8; original_default_latency = 0x4a2c; original_create_latency = 0x2f48; original_array_append = 0x26d4; original_cf_release = 0x26e0; original_cf_equal = 0x26ec; SECTIONS { . = 0x89e0; .text : { *(.text*) } /DISCARD/ : { *(.ARM.exidx*) *(.ARM.extab*) *(.comment*) *(.note*) } }')
     env=dict(os.environ,ZIG_GLOBAL_CACHE_DIR='/tmp/ev6-audio-zig-cache',ZIG_LOCAL_CACHE_DIR='/tmp/ev6-audio-zig-local')
-    subprocess.run([os.environ.get('ZIG', 'zig'),'cc','-target','arm-linux-gnueabi','-mcpu=cortex_a15','-nostdlib','-no-pie','-Wl,-T,'+str(HERE/'capability-candidate.ld'),'-Wl,-e,capability_input',str(HERE/'capability-candidate.S'),'-o',str(HERE/'capability-candidate.elf')],env=env,check=True,capture_output=True)
+    subprocess.run(['/tmp/ev6-audio-toolchain/ziglang/zig','cc','-target','arm-linux-gnueabi','-mcpu=cortex_a15','-nostdlib','-no-pie','-Wl,-T,'+str(HERE/'capability-candidate.ld'),'-Wl,-e,capability_input',str(HERE/'capability-candidate.S'),'-o',str(HERE/'capability-candidate.elf')],env=env,check=True,capture_output=True)
     with (HERE/'capability-candidate.elf').open('rb') as f:
         elf=ELFFile(f);section=elf.get_section_by_name('.text');code=section.data()
         symbols={s.name:s['st_value']&~1 for s in elf.get_section_by_name('.symtab').iter_symbols()}

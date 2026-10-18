@@ -7,7 +7,7 @@ import json
 import struct
 import sys
 from pathlib import Path
-
+sys.path.insert(0, '/tmp/ev6-native-analysis')
 from elftools.elf.elffile import ELFFile
 from unicorn import Uc, UC_ARCH_ARM, UC_MODE_THUMB, UC_HOOK_INTR
 from unicorn.arm_const import *
