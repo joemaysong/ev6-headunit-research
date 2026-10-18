@@ -1,23 +1,27 @@
-# Owner switching checklist
+# Owner switching acceptance matrix for V16
 
-Operate the vehicle UI manually. USB ADB mode must be off when using the same
-port for iPhone USB CarPlay. Change one condition at a time; avoid repeated
-pairing deletion. Record results; these rows are not automatic acceptance.
+Use original vehicle UI manually. Keep USB ADB mode off on the port used for
+phone USB CarPlay. Change one condition at a time. Record exact revision,
+actual started transport, old finalization/new session identity and owner App
+operability. A UI ACK or USB cable presence alone is insufficient.
 
-| Case | Expected behavior | Current status |
+| Case | Reference evidence | Still needed for a new vehicle |
 |---|---|---|
-| X wired -> explicitly choose 15 Pro wireless, X remains plugged | Original X session ends, then 15 Pro connects; no automatic takeover | Connection reported and lifecycle trace reviewed; latest App operability not separately confirmed |
-| 15 Pro wireless -> plug X | 15 Pro continues; X should be available for explicit selection | Known inactive USB-only row omission remains |
-| Explicitly select USB-only X | Original 15 Pro session ends before X starts | Incomplete when X is not listed; do not mark passed |
-| Same phone wireless first, then insert USB | Existing wireless session continues without interruption | Not accepted yet |
-| Same phone wired first, wireless also recognized | One device identity and one active session; no automatic interruption | Not accepted yet |
-| Unplug or explicitly stop | Do not automatically reconnect solely because of the stop | Further owner verification |
+| Wireless connect, stop and direct reconnect | V14 targeted normal case with owner operability confirmed | Repeat after the port's reboot |
+| Wireless device A -> B -> A | V14 both directions; original finalization and new verified identity | Repeat with that vehicle's paired devices |
+| Same phone wireless, then USB insertion/removal | V14 session remained actual Wireless; three stages owner-operable | Do not relabel this as true wired start |
+| True wired start from fresh controller Added | V16 first native OK, verified Wired, normal unplug finalization | Require same ordering and actual Wired evidence |
+| True wired start after prior wireless controller, fresh Updated | V16 targeted first native OK, verified Wired, normal unplug finalization | Repeat Updated separately; Added-only evidence is insufficient |
+| True wired unplug -> explicit wireless | Earlier targeted functional passes, including same-phone sequence | Check new port without assuming the earlier initial INVALID_ARGUMENT is accepted |
+| Rapid repeated taps / arbitrary simultaneous crossovers | Owner later reported free switching normal; no exhaustive matrix | Mark each tested permutation explicitly |
+| Exact Bluetooth cancel positive path | Unexercised; normal work completion is not cancel acceptance | Do not force busy state or loosen work identity guards |
+| Inactive USB-only row discovery/selection | Known OEM list limitation; catalog expansion was retired | Remains a separate compatibility question |
+| Every Siri/call/priority/error/power interruption | Not comprehensively classified | Separate bounded acceptance cases |
 
-Public flow reference: https://developer.apple.com/videos/play/wwdc2017/717/
-The document separates explicit device selection from automatic transport
-selection. It does not require a manual wired-versus-wireless switch for one phone.
+Stop and preserve evidence when blocked. Do not clear busy flags, restart OEM
+processes, re-pair phones or reboot until the failure has been understood, unless
+the owner chooses recovery. Unknown evidence must stay unknown. Captures remain
+private and finite; embedded runtime bridges remain installed.
 
-
-## V16 final update
-
-V16 final preserves V14 controller/Bluetooth and V13 session reconciliation. Wired identity submissions now wait for original Wired Added or Updated on the same OEM Handler, bound to USB/intent generation and exact current controller object. Frozen private complete input trees and exact assets are required for restore; this public repository contains only project-authored sources. Do not reuse historical candidate deployment drivers. The owner operates OEM UI and full reboot; require original idle guards, backups, post-boot hash/process checks and system read-only before use.
+This matrix reports the scope of preserved evidence. No new owner switching
+trial was performed by the reproduction review.

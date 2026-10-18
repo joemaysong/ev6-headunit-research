@@ -1,4 +1,7 @@
 {
+  "_record_kind": "historical_before_v16_reproduction_review",
+  "_current_v16_acceptance": false,
+  "_current_inventory": "profiles/v16-release.json",
   "version": "2026.10.17-final2",
   "controller_sha256": "a0c737fff0c0dc8cb53f8f3cca3d01119284d82b65f9e69983a1635f7ea53124",
   "native_prompt_after_both_sides_cleared": true,

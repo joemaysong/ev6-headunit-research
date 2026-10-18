@@ -1,4 +1,7 @@
 {
+  "_record_kind": "historical_before_v16_reproduction_review",
+  "_current_v16_acceptance": false,
+  "_current_inventory": "profiles/v16-release.json",
   "time": "2026-10-17T02:19:38.949564+08:00",
   "new_kernel_boot": true,
   "real_init_service": true,

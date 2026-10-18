@@ -1,33 +1,55 @@
-# Final architecture
+# V16 ownership and lifecycle architecture
 
-Original PhoneProjection connectPP selects the real device. Original DiPO and
-native control own retries, authentication, session start/end and association.
-The project root controller owns only its AP/subnet/reply firewall and selected
-UI intent. Final uses authenticated original Handler/call observation to prevent
-premature cleanup. Native/backend/PP association are checked independently.
+## Component boundaries
 
-EV6ATTEMPT4 includes receiver generation, PP sequence, Java invocation ordinal,
-queue/call counts and returned-work settlement. It is a private project adapter,
-not an Apple API or a cancellation command. Retained reconnect address metadata
-survives normal stop; it does not establish pending work. Unknown observations
-preserve resources, not invented completion. No timer force-clears original work.
+| Owner | Responsibility | Boundary |
+|---|---|---|
+| OEM PhoneProjection/DiPO/native | Actual device association, iAP2/MFi authentication, requests/retries, session start/end, transport | Project never fabricates success or overrides transport |
+| Root controller14 | Explicit selected UI intent, owned AP/subnet/reply firewall, outcome/pause bookkeeping | Native/backend/OEM association and original work receipts gate release |
+| EV6ATTEMPT13 + SessionLedger | Separate request ID, endpoint, local context/epoch and actual started transport | Local epochs are not OEM/native session IDs; late callbacks cannot finalize successors |
+| Bluetooth bridge14 | Root-only receipt of exact OEM machine/work generation | Cancellation remains in original Connecting Handler and machine monitor |
+| Wired gate16 | Order the two original USB identification submissions | Same Handler, fresh Added OR Updated, USB/intent epoch, device, current controller object |
+| OEM9 backend/provider | Delegate to the existing Iap2ServerApp and framework library | No replacement of OEM MFi/authentication code |
 
-The installed discovery/provider behavior is retained from the working baseline;
-experimental dual-stack/provider rewrites are excluded. Stock Nature Sound and
-original native control/disconnect libraries remain. A state-based PCM drain
-patch preserves short media endings. No direct HTTP or native teardown fallback
-is shipped. No full transport-loss/power feature expansion is claimed.
+## Submission and session evidence
 
-## Explicit selection from an original active session
+The observation protocol is **EV6ATTEMPT13**, 37 fields, parsed strictly by
+`OemAttemptSnapshot`. An earlier EV6ATTEMPT4 fixture is incompatible. Queue empty,
+UI ACK, return OK, native pointer, timeout and active AP are different facts.
+Session details may precede initialized; Unknown request type can later yield a
+real wired/wireless start. Same-endpoint requests retain independent returns
+while sharing a pre-init context. A finalized old session does not settle a
+successor request. Historic faults are distinct from current release blockers.
 
-Only a fresh accepted UI selection can adopt a known active original identity
-for stopping. Native control ownership, matching OEM association and known
-original observation are required and rechecked. The existing disconnectPP
-handler is used. No wireless publication or connected flag is fabricated for
-USB. Genuine original settlement and inactive native/backend/OEM states still
-precede the next begin. Automatic pairing/reconnection cannot enter this path.
+An explicit UI selection can adopt a real original active identity for STOP only
+when native control ownership and matching OEM association are proved. Automatic
+pairing cannot use that path. Actual finalization plus inactive native/backend/
+OEM state remains required before successor begin or AP cleanup.
 
+## Exact Bluetooth work and Wired readiness
 
-## V16 final update
+Controller14 pins the Bluetooth receiver token, process generation, work epoch
+and target during explicit selection. The in-process bridge rechecks them on the
+same original Handler under the machine monitor, with no active profiles/call/
+projection, before dispatching the original normal-cancel body. Dispatch receipt
+is not completion; original non-busy settlement must follow. The positive cancel
+branch is still unexercised on the reference vehicle.
 
-V16 final preserves V14 controller/Bluetooth and V13 session reconciliation. Wired identity submissions now wait for original Wired Added or Updated on the same OEM Handler, bound to USB/intent generation and exact current controller object. Frozen private complete input trees and exact assets are required for restore; this public repository contains only project-authored sources. Do not reuse historical candidate deployment drivers. The owner operates OEM UI and full reboot; require original idle guards, backups, post-boot hash/process checks and system read-only before use.
+Gate16 replays the original listener API only after a fresh original Wired Added
+or Updated return for the current controller. USB detach, intent replacement,
+controller removal and service replacement retire the pending ticket. Original
+error/retry/timeout/active-session behavior remains the owner of the operation.
+
+## Retained earlier compatibility changes
+
+The DiPO baseline also contains a documented wireless initialization compatibility
+edit in `initVariables`, replacing an old debug-log region with a wireless-support
+check that updates `mIsIap2Disconnected`. `dipo-v16.json` includes this change and
+the delegate-entry hook before its observation wrappers. Thus "OEM business bodies
+preserved" applies to the renamed wrapper bodies subject to these explicit legacy
+integration edits; it is not a claim that every original method is byte-identical.
+
+Stock native control/disconnect, stock Nature Sound, the existing discovery/provider
+and the state-based media PCM drain remain. No custom native teardown or direct
+HTTP disconnect fallback is part of V16. Optional captures can be removed; embedded
+observation/ledger/Bluetooth bridges remain runtime dependencies.

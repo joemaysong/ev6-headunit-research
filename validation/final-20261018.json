@@ -1,4 +1,7 @@
 {
+  "_record_kind": "historical_before_v16_reproduction_review",
+  "_current_v16_acceptance": false,
+  "_current_inventory": "profiles/v16-release.json",
   "version": "2026.10.18-manual-handoff-final",
   "owner_selected_final": true,
   "user_reported_X_wired_to_15Pro_wireless_connected": true,

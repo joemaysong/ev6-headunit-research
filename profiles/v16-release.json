@@ -1,0 +1,161 @@
+{
+  "version": "2026.10.18-v16-final",
+  "status": "final_user_selected",
+  "selected_date": "2026-10-18",
+  "timezone": "Asia/Taipei",
+  "scope": "Owner selected V16 Wired Added/Updated gate + V14 controller/Bluetooth. Targeted paths accepted; owner reports free switching normal. Exact Bluetooth cancel positive branch unexercised.",
+  "previous_release": "2026.10.18-manual-handoff-final",
+  "assets": {
+    "Bluetooth.odex": {
+      "sha256": "1dd30d7343eafded6d8a190fae22c53d8a4379a8db7e4db2c5d52e3a1fc243bf",
+      "md5": "91c0cfa3e53adff73956d18f4b8ab247",
+      "bytes": 2456208
+    },
+    "HKMC_BtSettings.odex": {
+      "sha256": "69691050b7a428bfb1c529af37702bf5c7db9d17052b52da3fe92e8f7d50df0e",
+      "md5": "14b75bd6e9d2a92f96414d99c0951f21",
+      "bytes": 2579344
+    },
+    "HKMC_DiPO.odex": {
+      "sha256": "9c1adebf1b58e48924a7f742533698262f6f76a50bc72bd65b6752d9e9a31c2a",
+      "md5": "1cc886f9deb0720eac8f67a00fa944fc",
+      "bytes": 891824
+    },
+    "HKMC_NatureSound.odex": {
+      "sha256": "eb24ca2dfcdd1f875b32cc491a323c16a1e886c5fad33cda0c82f796ee97c58c",
+      "md5": "2d191cd5bfdc1b439450a95e69f079c0",
+      "bytes": 1491640
+    },
+    "ap-firewall.sh": {
+      "sha256": "12afd001aab85ff4737c5f0c939da4736ababf06c29083dde592f080e1e3fc6f",
+      "md5": "d8362da613aed2f8bdf557eae306c675",
+      "bytes": 2171
+    },
+    "ap-subnet.sh": {
+      "sha256": "a9fca6e4d210306071672ebb58238820ce0df85f4e1c595da44c05f6f9505282",
+      "md5": "9038b25b7b10ee85ee59637ab676fff5",
+      "bytes": 3689
+    },
+    "backend.apk": {
+      "sha256": "364a4f6028e77e6d5f875279c118ce2786b57beaf894e509287fc91038355326",
+      "md5": "6d5c975058289f9b27399903bc3c8bf3",
+      "bytes": 20041
+    },
+    "button.apk": {
+      "sha256": "7b4942b1e5641aa42f9806f1dc42b5d76eb7141cde4a14f9cb1b06ed30b4f64c",
+      "md5": "7628591b6b89657e44ba1b117782e25f",
+      "bytes": 4299
+    },
+    "com.hkmc.software.connectivity.carplay_wireless.xml": {
+      "sha256": "324fbf888c09f65021a8174fbf9b83bb4bce787d1a07963d98a8467f14decb6c",
+      "md5": "95ff801a064526de56059dba10960b05",
+      "bytes": 100
+    },
+    "controller.jar": {
+      "sha256": "7c4f8414514914d6c6472290e31888de75d85e1d17ad2069d7d53010474d4db3",
+      "md5": "e14d3a134b1abf47175507d2daeaf522",
+      "bytes": 101740
+    },
+    "detach-overlays": {
+      "sha256": "4489014aa63fc233d5451c3c382510c3bf8cea1336e9d99ed616daebb56b6c82",
+      "md5": "01cc49193e3f541eb8d5ec61092778fc",
+      "bytes": 22600
+    },
+    "featurexml.cfg": {
+      "sha256": "1f608b913ecf73b2865c348c1e25a3a80c1302586586131adab144a56b937fb7",
+      "md5": "291a001e9ea5867a84a91bfc9598fbd1",
+      "bytes": 2004
+    },
+    "install-recovery.sh": {
+      "sha256": "4963e3674f40cb79a66012bae26e6878bd41bc3cfee39fb18184d483ff8b1673",
+      "md5": "04bd5a3bb191a0c9009334cc00e00473",
+      "bytes": 202
+    },
+    "libCarPlay.so": {
+      "sha256": "b16935fb3601b7d486067f07dcc99d69c33a7e6702ff7ef15be56321f4545097",
+      "md5": "3104b375dc8d2d9c02aca7bec9f4db72",
+      "bytes": 87620
+    },
+    "libCarPlayAudio.so": {
+      "sha256": "cc5dce783c7c33301cb3ceb2dcf800160efb6f9a0359bbadc326dfef0edd5912",
+      "md5": "f7a37c4594e23c40c5fa72f811f884e8",
+      "bytes": 38312
+    },
+    "restore-original.sh": {
+      "sha256": "c6ef2125d2fa8e17641101becd5e291f817dade5baed345dd1b2d61d5a0040ad",
+      "md5": "e7416a6ad16bd6d8af70bb67af89f1c2",
+      "bytes": 4314
+    },
+    "supervise.sh": {
+      "sha256": "9b59f805ed5761851134052c2ea3d67089b62b43a54fec8a12e4789eb6f01974",
+      "md5": "01fafd6aa4d767312cbd5ae8d71e403e",
+      "bytes": 827
+    },
+    "wl-stations": {
+      "sha256": "154f72a88c3ad8e2206c8a2a6d54ea5dd0015de3def768767732640bae9636f6",
+      "md5": "a92d7b1cec4d0509da805a5f34d03540",
+      "bytes": 26540
+    }
+  },
+  "known_limitations": [
+    "An unpaired USB-only inactive phone can disappear from the original Device Connections list; reverse selection is incomplete.",
+    "Same-phone simultaneous USB/wireless behavior has not been accepted in this release."
+  ],
+  "functional_source": "manual-handoff-fix controller, manual-reconnect-fix backend, usb-preflight-fix observer; original OEM business bodies retained",
+  "runtime_components": {
+    "wired_gate_revision": 16,
+    "controller_revision": 14,
+    "observer_protocol": "EV6ATTEMPT13"
+  },
+  "reconstruction_is_new_artifact_until_verified": true,
+  "originals": {
+    "libCarPlayAudio.so": {
+      "sha256": "77aad93fe8ec7ec93974102a07f1e5fdc3a0259e501cde251c6128ac6fa0790c",
+      "bytes": 38312
+    },
+    "HKMC_NatureSound.odex": {
+      "sha256": "eb24ca2dfcdd1f875b32cc491a323c16a1e886c5fad33cda0c82f796ee97c58c",
+      "bytes": 1491640
+    },
+    "HKMC_NatureSound.apk": {
+      "sha256": "35c5cfa6947b926cec7db9154dc90ffe1f009e1706a3ebeb31b235509c382efd",
+      "bytes": 17141398
+    },
+    "HKMC_BtSettings.odex": {
+      "sha256": "f470d8c6f9a0b239ae85cc3b64f5784881b118d584c59d520f4e12abde45b7ef",
+      "bytes": 2579344
+    },
+    "libCarPlayAndroid.so": {
+      "sha256": "c5e099dcec35557c06051a610fc35b4a0ce1c87fa921bc5519fa7c7f4c5dc34e",
+      "bytes": 63272
+    },
+    "HKMC_BtSettings.apk": {
+      "sha256": "c12a4441ee6670b01c60a926a322bd798535fd89310c3ba2bdcfe3cc33d1f878",
+      "bytes": 6015145
+    },
+    "HKMC_DiPO.odex": {
+      "sha256": "8cf82b2a71758237f63d99fba57f839b71df8511888d8e1ee2e6d3f610e4f0c9",
+      "bytes": 846720
+    },
+    "featurexml.cfg": {
+      "sha256": "3ad98528b8d3dd0e132e341a8d1d716a6c47d384f7ef4e3961f91ce6f2909634",
+      "bytes": 2081
+    },
+    "libCarPlay.so": {
+      "sha256": "b16935fb3601b7d486067f07dcc99d69c33a7e6702ff7ef15be56321f4545097",
+      "bytes": 87620
+    },
+    "libCarPlayCore.so": {
+      "sha256": "39d454657cd44ef2e020b632d04a6ebbb92a83a73d5e7e9012b025e74df54c2f",
+      "bytes": 124856
+    },
+    "HKMC_DiPO.apk": {
+      "sha256": "90195053e96c8d6f0a1cd188a226bf22278bffb34b6c8864c94088ade7518882",
+      "bytes": 1076800
+    },
+    "Bluetooth.odex": {
+      "sha256": "a37ff88968f1cbc9b9cc2f8362b7b0891bea6ea475674e79c566689f1fdf687a",
+      "bytes": 2451808
+    }
+  }
+}

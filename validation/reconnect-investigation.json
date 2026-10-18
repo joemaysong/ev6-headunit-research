@@ -1,4 +1,7 @@
 {
+  "_record_kind": "historical_before_v16_reproduction_review",
+  "_current_v16_acceptance": false,
+  "_current_inventory": "profiles/v16-release.json",
   "release": "2026.10.17-final2",
   "status": "intermittent_existing_pairing_reconnect_unresolved",
   "runtime_changed_during_investigation": false,

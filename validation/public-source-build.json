@@ -1,4 +1,7 @@
 {
+  "_record_kind": "historical_before_v16_reproduction_review",
+  "_current_v16_acceptance": false,
+  "_current_inventory": "profiles/v16-release.json",
   "public_source_build_passed": true,
   "build_used_environment_tool_paths": true,
   "generated_artifacts_and_signing_identity_removed_with_temporary_directory": true,

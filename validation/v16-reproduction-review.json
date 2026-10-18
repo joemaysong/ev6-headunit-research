@@ -1,0 +1,154 @@
+{
+  "format": 1,
+  "version": "2026.10.18-v16-final",
+  "review_date": "2026-10-18",
+  "baseline_github_commit": "e7ec8f92ed782f15e4e845aab47211022a3a0143",
+  "review_scope": "Public source reproduction, documentation, original-instruction comparison and offline checks; no vehicle change",
+  "fixed_publication_gaps": [
+    "Missing required ap-firewall source",
+    "Missing station-reader source/build route",
+    "Missing DiPO/Bluetooth OEM hook reconstruction recipes",
+    "Missing backend build and source-authored manifests",
+    "Button builder relied on local paths and silently generated a temporary signer",
+    "Audio builder wrote into source and relied on retired temporary tool paths",
+    "Audio test imported absent audio_trial module",
+    "Old EV6ATTEMPT4 test was incompatible with current 37-field EV6ATTEMPT13",
+    "Rollback did not restore V16 Bluetooth/DiPO and mirrored copies",
+    "Historical validation appeared alongside current acceptance without version scoping",
+    "Old owner matrix omitted later scoped V14/V16 results",
+    "Recorder build/output and target selection were implicit"
+  ],
+  "builds": {
+    "controller": {
+      "compiled": true,
+      "installed": false,
+      "runtime_accepted_by_this_review": false
+    },
+    "backend": {
+      "compiled": true,
+      "installed": false,
+      "runtime_accepted_by_this_review": false
+    },
+    "button": {
+      "compiled": true,
+      "installed": false,
+      "runtime_accepted_by_this_review": false
+    },
+    "observer_dex": {
+      "compiled": true,
+      "installed": false,
+      "runtime_accepted_by_this_review": false
+    },
+    "bluetooth_dex": {
+      "compiled": true,
+      "installed": false,
+      "runtime_accepted_by_this_review": false
+    },
+    "builder": {
+      "compiled": true,
+      "installed": false,
+      "runtime_accepted_by_this_review": false
+    },
+    "audio": {
+      "compiled": true,
+      "installed": false,
+      "runtime_accepted_by_this_review": false
+    },
+    "station_reader": {
+      "compiled": true,
+      "installed": false,
+      "runtime_accepted_by_this_review": false
+    },
+    "timeline_recorder": {
+      "compiled": true,
+      "installed": false,
+      "runtime_accepted_by_this_review": false
+    }
+  },
+  "exact_reference_outputs": {
+    "libCarPlayAudio.so": {
+      "sha256": "cc5dce783c7c33301cb3ceb2dcf800160efb6f9a0359bbadc326dfef0edd5912",
+      "matches_frozen": true
+    },
+    "HKMC_BtSettings.odex": {
+      "sha256": "69691050b7a428bfb1c529af37702bf5c7db9d17052b52da3fe92e8f7d50df0e",
+      "matches_frozen": true
+    },
+    "featurexml.cfg": {
+      "sha256": "1f608b913ecf73b2865c348c1e25a3a80c1302586586131adab144a56b937fb7",
+      "matches_frozen": true
+    }
+  },
+  "canonical_instruction_comparison": {
+    "observer": {
+      "classes": 318,
+      "changed_classes": [],
+      "internal_references_resolved": 11065
+    },
+    "bluetooth": {
+      "classes": 722,
+      "changed_classes": [],
+      "internal_references_resolved": 18029
+    },
+    "controller": {
+      "referenced_retained_classes_match": true,
+      "frozen_only_unreferenced_legacy_classes": [
+        "BluetoothWork",
+        "BluetoothWork$Snapshot"
+      ],
+      "bit_exact_jar_claimed": false
+    },
+    "normalization": "Ignore debug positions/generated label spelling/method storage order; retain instructions/registers/constants/descriptors/annotations/exception tables",
+    "runtime_equivalence_proven": false,
+    "backend": {
+      "classes": 23,
+      "changed_classes": []
+    },
+    "button": {
+      "classes": 1,
+      "changed_classes": []
+    }
+  },
+  "offline_regressions": {
+    "pcm_arm_emulation_cases_passed": 39,
+    "current_attempt13_parser_owner_checks_passed": 25,
+    "session_ledger_ordering_checks_passed": 13,
+    "apk_manifests_exactly_match_frozen": {
+      "backend": true,
+      "button": true
+    },
+    "existing_backend_button_signers_matched_and_signatures_verified": true,
+    "wrong_key_rejected": true,
+    "wrong_installed_signer_rejected": true,
+    "original_private_signing_files_preserved_unchanged": true,
+    "new_signing_identity_generated": false,
+    "different_oem_tree_refused_before_output": true,
+    "audio_original_lock_survives_python_optimized_mode": true,
+    "missing_framework_dependencies_reported": true,
+    "python_sources_parsed": 23,
+    "shell_sources_syntax_checked": 6
+  },
+  "pristine_baseline_check_scope": {
+    "original_raw_odex_instructions_compared": true,
+    "accepted_preserved_resolution_contracts_used": true,
+    "new_framework_pull_or_fresh_full_deodex_trial": false,
+    "required_framework_dependency_count": 16,
+    "new_native_odex_cache_generation": false
+  },
+  "preserved_vehicle_acceptance": {
+    "v14_normal_wireless_stop_reconnect_and_both_direction_device_switching": true,
+    "v16_fresh_wired_added_targeted_pass": true,
+    "v16_fresh_wired_updated_targeted_pass": true,
+    "owner_later_reported_free_switching_normal": true,
+    "exact_bluetooth_cancel_positive_branch": "unexercised",
+    "all_permutations_or_full_mfi_certification": false
+  },
+  "not_newly_live_validated": [
+    "Reconstructed station reader executable",
+    "Revised reference V16 rollback helper",
+    "Fresh builds/ODEX caches on vehicle",
+    "Any new vehicle or firmware port",
+    "Exact Bluetooth cancel positive dispatch"
+  ],
+  "private_retention": "Existing keys/certificates, pristine originals, frozen V16 assets, complete private smali and external original-backup pointer remain private and retained; publication contains source/contracts only"
+}

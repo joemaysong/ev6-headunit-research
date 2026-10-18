@@ -1,4 +1,7 @@
 {
+  "_record_kind": "historical_before_v16_reproduction_review",
+  "_current_v16_acceptance": false,
+  "_current_inventory": "profiles/v16-release.json",
   "window_start": "2026-10-17T01:32:25.029659+08:00",
   "window_end": "2026-10-17T01:32:49.249737+08:00",
   "samples": 25,

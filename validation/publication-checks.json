@@ -1,4 +1,7 @@
 {
+  "_record_kind": "historical_before_v16_reproduction_review",
+  "_current_v16_acceptance": false,
+  "_current_inventory": "profiles/v16-release.json",
   "synthetic_offline_tests": 15,
   "python_sources_parsed": 26,
   "shell_sources_checked": 4,
