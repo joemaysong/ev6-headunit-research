@@ -1,6 +1,7 @@
 import java.io.*;
 
-/** Read-only, hash-guarded firmware-specific native state. No memory writes. */
+/** Read-only firmware-specific native state. Controller startup verifies hashes;
+ * standalone probes require external profile/hash verification. No memory writes. */
 public final class NativeSession implements Closeable {
     final int pid;
     private final RandomAccessFile memory;
