@@ -26,3 +26,8 @@ original observation are required and rechecked. The existing disconnectPP
 handler is used. No wireless publication or connected flag is fabricated for
 USB. Genuine original settlement and inactive native/backend/OEM states still
 precede the next begin. Automatic pairing/reconnection cannot enter this path.
+
+
+## V16 final update
+
+V16 final preserves V14 controller/Bluetooth and V13 session reconciliation. Wired identity submissions now wait for original Wired Added or Updated on the same OEM Handler, bound to USB/intent generation and exact current controller object. Frozen private complete input trees and exact assets are required for restore; this public repository contains only project-authored sources. Do not reuse historical candidate deployment drivers. The owner operates OEM UI and full reboot; require original idle guards, backups, post-boot hash/process checks and system read-only before use.

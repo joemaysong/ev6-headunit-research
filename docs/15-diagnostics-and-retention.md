@@ -1,69 +1,21 @@
-# Recreate diagnostics; retain no capture data
+# Recreate optional diagnostics
 
-Final contains an in-process, observation-only EV6ATTEMPT4 endpoint because the
-AP timing repair uses its original-work acknowledgement. This is part of the
-runtime repair, not a temporary recorder. It has no persistent capture worker.
+Final requires the embedded EV6ATTEMPT13 observation bridge, session ledger and root-only Bluetooth exact-work bridge. They provide functional guard receipts and must remain installed. They do not require a persistent full capture worker. Deleting these runtime channels would break the final controller.
 
-## Vehicle state / original work
+## Finite vehicle recorder
 
-With the exact final installed, use the original framework classpath plus
-/system/etc/ev6-carplay/controller.jar and launch ControllerProbe or
-OemAttemptProbe in a separate root app_process. The latter accepts only root,
-checks peerUID1000/PID/startgeneration and prints fixed counts/flags. No phone
-address, credential or audio payload is printed. Use a bounded host recorder;
-stop it after the case and remove only its own temporary files/ADB forwards.
+Source is carplay/diagnostics/switch-capture. Set JAVA, ECJ_JAR, ANDROID_JAR, R8_JAR and CONTROLLER_SOURCE to carplay/src. Run build_timeline.py to create timeline.jar. Set ADB to the chosen adb executable, connect one authorized vehicle, then run manage.py start. It records USB properties/sysfs/enumeration, observed UI commands and ACK/outcome, original callbacks, request/session/actual transport and fixed Bluetooth work flags. Actual taps that emit no command are not guaranteed visible.
 
-The installed controller is autonomous. Do not stop it or disconnect a working
-session merely to read its state. To inspect Java original resource fields,
-the privately retained JDWP reader source retain
-the reviewed JDWP read-only approach; require a current exact firmware hash,
-attach one original process, read explicit fields, dispose then remove the
-allocated ADB forward. No guessed private fields or writes.
+Recording is local, bounded to20 minutes with rotation; it continues when ADB is unplugged. collect stops and exports private files; remove deletes only that recorder stage and its own Dalvik cache. Never add it to boot hooks. Keep captures private and remove them after analysis. Do not remove operational known-peer, pause, session, ownership or saved-client-state files.
 
-## Phones
+## Read-only probes
 
-Use libimobiledevice USB enumeration and select a unique ProductType match:
-iPhone10,6 for X, iPhone16,1 for15Pro. Keep actual identifiers only in memory.
-On this Mac old binaries need libplist compatibility: create a private runtime
-directory with libplist-2.0.3.dylib and libplist-2.0.4.dylib symlinks pointing to
-the installed libplist-2.0.dylib, then set DYLD_LIBRARY_PATH for that child only.
-Check subprocess return codes; missing dylib is not absence of connected phones.
+Run ControllerProbe/OemAttemptProbe with the exact final controller JAR and original framework classpath, in a separate root app_process. Use fixed counters/booleans; preserve UNKNOWN. Do not fake completion from an outer timeout or clear busy flags to pass acceptance.
 
-For X root inspection use the user's existing palera1n usbmux SSH port44 through
-an ephemeral iproxy local port. Read current credentials interactively or from
-an ephemeral environment; never save them in source, logs or GitHub. Close only
-the proxy created by the diagnostic. Keep jailbreak/SSH bootstrap intact.
+## Phone diagnostics
 
-For both phones use a filtered USB syslog relay: the privately retained filtered USB relay source documents
-count/event sanitization. It installs no profile or on-phone recorder and stores
-captures only in the chosen host output. Non-jailbroken15Pro has no equivalent
-root shell. Do not infer phone-side storage merely from host relay output.
+Use a finite USB syslog relay, selecting a unique ProductType. Keep identifiers private. Existing iPhone X jailbreak SSH may be reached through an ephemeral usbmux forward to the existing phone port; read credentials interactively, never store them in this repository. Do not remove jailbreak or system SSH as project cleanup. A relay does not imply an installed phone recorder. Stop only the specific host relay/proxy and remove its own output/forward.
 
-## Disposal
+## Final closeout
 
-Stop only owned host workers/proxies; remove owned ADB forwards, temporary
-reader jar/cache, PCM numeric diagnostics and host run directories. Remove any
-bounded test firewall chain/jump only after exact ownership checks. Never clear
-pairing, Wi-Fi credentials, user apps, system analytics or unrelated crash reports
-as part of project cleanup. Operational controller state is not a capture log.
-
-## October 18 cleanup
-
-Nine owned temporary vehicle capture/build/catalog directories and six
-diagnostic-only files were removed. No persistent USB capture worker remains.
-Functional controller/backend/button packages, original-work observation,
-known-peer state and AP/client restoration state remain required. Routine
-bounded operation records may reappear during normal operation.
-
-Closeout retains the original recovery inputs and current owner-selected final.
-Old candidate copies can be removed only after current artifact checksums are
-verified and a complete current final recovery copy exists. Local private
-diagnostic reconstruction sources stay available without publishing captures
-or requiring a permanently installed recorder.
-
-An optional finite USB sampler source is retained at
-carplay/diagnostics/usb_capture.sh. It needs an explicitly created private
-staging directory and is never installed or launched by final startup. Verify
-its owned PID and increasing samples before disabling USB ADB. It samples only
-fixed flags for at most 120 iterations, then exits; dispose of its exact staging
-directory after retrieving any required sanitized result.
+Preserve initial original inputs, exact final assets, existing signing identity and complete private rebuild inputs. Remove standalone recorder/build stages, temporary probes/caches and obsolete project candidate copies only after hashes and ownership are verified. Embedded work bridges remain required. Do not delete phone pairing, Wi-Fi credentials, user apps, normal analytics or OEM logs globally.
