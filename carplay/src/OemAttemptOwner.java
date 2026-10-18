@@ -1,167 +1,101 @@
 import java.io.IOException;
 
-/** Selected-attempt ownership, used by the staged controller.
- * A deadline has deliberately no method that releases this owner.
+/** Ownership of this worker's selection, independent of OEM request/session IDs.
+ * Whole-receiver lifecycle evidence, not a PP ordinal, gates resource release.
  */
 public final class OemAttemptOwner {
     private String receiver="",target="";
-    private long sequence,revision;
-    private boolean armed,observed,invalid;
-    private int entries,sessionEntry=-1;
+    private long sequence,revision,observedEpoch;
+    private boolean armed,invalid;
     public boolean owned(){return armed;}
     public boolean needsReview(){return invalid;}
-    public static boolean submissionReady(OemAttemptSnapshot snapshot) {
-        return snapshot!=null && !snapshot.unknown && snapshot.dispatches==0 && snapshot.connectCalls==0
-            && snapshot.queued==0 && (snapshot.reentryIntent==0 || snapshot.reentryIntent==2)
-            && (snapshot.sequence==0?snapshot.reentryIntent==0:snapshot.workSettled);
+    public static boolean submissionReady(OemAttemptSnapshot s) {
+        return s!=null && s.transportsSettled && s.transportBlocker==0
+            && s.dispatches==0 && s.connectCalls==0 && s.queued==0;
     }
-    public static boolean unownedCleanupReady(OemAttemptSnapshot snapshot,boolean explicitStop) {
-        return submissionReady(snapshot);
+    public static boolean unownedCleanupReady(OemAttemptSnapshot s,boolean explicitStop) {
+        return submissionReady(s);
     }
-    /** Our AP preparation never submitted PP. Retained prior metadata is not
-     * new work, but a changed PP sequence or Java invocation invalidates this.
-     */
-    public static boolean preparationCleanupReady(OemAttemptSnapshot baseline,OemAttemptSnapshot snapshot) {
-        return submissionReady(baseline) && submissionReady(snapshot)
-            && baseline.receiver.equals(snapshot.receiver) && baseline.sequence==snapshot.sequence
-            && baseline.target.equals(snapshot.target) && baseline.connectEntries==snapshot.connectEntries
-            && snapshot.revision>=baseline.revision;
+    public static boolean preparationCleanupReady(OemAttemptSnapshot baseline,OemAttemptSnapshot s) {
+        return submissionReady(baseline) && submissionReady(s)
+            && baseline.receiver.equals(s.receiver) && baseline.sequence==s.sequence
+            && baseline.connectEntries==s.connectEntries && s.revision>=baseline.revision;
     }
-    /** Adopt the original observed PP sequence after worker restart. The caller
-     * obtains selected from the authenticated receiver, never a guessed MAC.
-     */
-    public void adopt(OemAttemptSnapshot snapshot,String selected) throws IOException {
-        if(armed || snapshot==null || snapshot.unknown || snapshot.sequence<1
-            || selected==null || !selected.equals(snapshot.target))throw new IOException("oem-attempt-not-adoptable");
-        receiver=snapshot.receiver;target=selected;sequence=snapshot.sequence;revision=snapshot.revision;
-        entries=snapshot.connectEntries;sessionEntry=-1;armed=true;observed=true;invalid=false;
+    private static boolean validTarget(String value) {
+        return value!=null && value.matches("(?:[0-9A-F]{2}:){5}[0-9A-F]{2}");
     }
     public void arm(OemAttemptSnapshot baseline,String selected) throws IOException {
-        if(armed || baseline==null || baseline.unknown || selected==null
-            || !selected.matches("(?:[0-9A-F]{2}:){5}[0-9A-F]{2}")
-            || baseline.dispatches!=0 || baseline.connectCalls!=0 || baseline.queued!=0
-            || (baseline.reentryIntent!=0 && baseline.reentryIntent!=2)
-            || (baseline.sequence==0 && baseline.reentryIntent!=0)
-            || (baseline.sequence>0 && !baseline.workSettled) || baseline.sequence==Long.MAX_VALUE)
-            throw new IOException("oem-attempt-not-ready-for-submission");
+        if(armed || !validTarget(selected) || !submissionReady(baseline)
+            || baseline.sequence==Long.MAX_VALUE)throw new IOException("oem-attempt-not-ready-for-submission");
         receiver=baseline.receiver;target=selected;sequence=baseline.sequence+1;
-        revision=baseline.revision;armed=true;observed=false;invalid=false;entries=0;sessionEntry=-1;
+        revision=baseline.revision;armed=true;invalid=false;
     }
-    public boolean accept(OemAttemptSnapshot snapshot) {
-        if(!armed || invalid || snapshot==null)return false;
-        if(!receiver.equals(snapshot.receiver) || snapshot.revision<revision || snapshot.unknown) {
-            invalid=true;return false;
-        }
-        // A genuine asynchronous PP submission may not have reached the
-        // receiver yet. The preceding observation cannot release its successor.
-        if(!observed && snapshot.sequence==sequence-1) {
-            revision=snapshot.revision;return false;
-        }
-        if(!snapshot.owns(receiver,sequence,target)){invalid=true;return false;}
-        if(observed && snapshot.connectEntries<entries){invalid=true;return false;}
-        if(snapshot.connectEntries!=entries)sessionEntry=-1;
-        entries=snapshot.connectEntries;
-        observed=true;revision=snapshot.revision;return snapshot.complete;
+    public void adopt(OemAttemptSnapshot s,String selected) throws IOException {
+        // USB can own the actual session independently of the latest PP target.
+        if(armed || s==null || !validTarget(selected) || s.sequence<1
+            || !(s.verifiedSession(selected) || (submissionReady(s) && selected.equals(s.target))))
+            throw new IOException("oem-attempt-not-adoptable");
+        receiver=s.receiver;target=selected;sequence=s.sequence;revision=s.revision;observedEpoch=s.verifiedSession(selected)?s.sessionEpoch:0;armed=true;invalid=false;
     }
-    /** Transfer is evidenced by the genuine selected native session, never by
-     * a successful Java return alone. A later actual connect invalidates it.
-     */
-    public boolean observeSession(OemAttemptSnapshot snapshot,boolean nativeActive,
-            boolean backendActive,boolean nativeControlOwner,String originalAssociation) {
-        accept(snapshot);
-        if(!armed || invalid || !observed || snapshot==null || snapshot.connectEntries<1
-            || snapshot.dispatches!=0 || snapshot.connectCalls!=0 || snapshot.queued!=0
-            || !nativeActive || !backendActive || !nativeControlOwner
-            || originalAssociation==null || !target.equalsIgnoreCase(originalAssociation))return false;
-        sessionEntry=snapshot.connectEntries;return true;
+    /** STOP-only adoption. Caller supplies bracketed real native evidence;
+     * this does not certify correlation or authorize a new connection. */
+    public void adoptForStop(OemAttemptSnapshot s,String selected,boolean nativeActive,
+            boolean controlOwner,String association) throws IOException {
+        if(armed || s==null || !validTarget(selected) || !nativeActive || !controlOwner
+            || !selected.equalsIgnoreCase(association))throw new IOException("oem-stop-owner-unverified");
+        receiver=s.receiver;target=selected;sequence=s.sequence;revision=s.revision;observedEpoch=s.verifiedSession(selected)?s.sessionEpoch:0;armed=true;invalid=false;
     }
-    public boolean canRelease(OemAttemptSnapshot snapshot,boolean nativeActive,
-            boolean backendActive,String originalAssociation) {
-        accept(snapshot);
-        // Cleanup waits for this original work to return, not for the OEM to
-        // erase its retained reconnect address. That address survived normal
-        // stop in the actual trace and does not itself mean pending work.
-        return armed && !invalid && observed && snapshot!=null && snapshot.workSettled
-            && (snapshot.reentryIntent==0 || snapshot.reentryIntent==2) && !nativeActive && !backendActive
-            && ConnectionPolicy.originalAssociationCleared(originalAssociation);
+    private boolean sameReceiver(OemAttemptSnapshot s) {
+        if(!armed || s==null)return false;
+        if(!receiver.equals(s.receiver) || s.revision<revision){invalid=true;return false;}
+        revision=s.revision;return true;
     }
-    public void released(OemAttemptSnapshot snapshot,boolean nativeActive,
-            boolean backendActive,String originalAssociation) throws IOException {
-        if(!canRelease(snapshot,nativeActive,backendActive,originalAssociation))
-            throw new IOException("oem-attempt-still-owned");
+    public boolean accept(OemAttemptSnapshot s) {
+        if(!sameReceiver(s))return false;
+        // Missing/ambiguous evidence is reported by THIS snapshot, not latched
+        // into a second process-lifetime owner fault. History remains upstream.
+        return !invalid && s.transportsSettled && s.sequence>=sequence;
+    }
+    public boolean observeSession(OemAttemptSnapshot s,boolean nativeActive,
+            boolean backendActive,boolean controlOwner,String association) {
+        if(!sameReceiver(s) || invalid || !nativeActive || !controlOwner
+            || !target.equalsIgnoreCase(association) || !s.verifiedSession(target))return false;
+        boolean ready=s.actualSessionTransport==1 || (s.actualSessionTransport==2 && backendActive);
+        if(ready)observedEpoch=s.sessionEpoch;return ready;
+    }
+    public boolean canTransferTo(OemAttemptSnapshot s,String selected) {
+        return sameReceiver(s) && !invalid && observedEpoch>0
+            && s.lastFinalizedEpoch>=observedEpoch
+            && s.sessionEpoch>observedEpoch && s.verifiedSession(selected);
+    }
+    public void transferTo(OemAttemptSnapshot s,String selected) throws IOException {
+        if(!canTransferTo(s,selected))throw new IOException("oem-successor-not-verified");
+        target=selected;sequence=s.sequence;revision=s.revision;observedEpoch=s.sessionEpoch;
+    }
+    public boolean canReleaseRecovered(OemAttemptSnapshot s,boolean nativeActive,
+            boolean backendActive,String association) {
+        return sameReceiver(s) && !invalid && s.sequence>=sequence && submissionReady(s)
+            && !nativeActive && !backendActive && ConnectionPolicy.originalAssociationCleared(association);
+    }
+    public void releasedRecovered(OemAttemptSnapshot s,boolean nativeActive,
+            boolean backendActive,String association) throws IOException {
+        if(!canReleaseRecovered(s,nativeActive,backendActive,association))
+            throw new IOException("oem-recovery-receipt-mismatch");
         clear();
     }
-    /** Original preflight rejected before ANY player delegation in this PP
-     * attempt. Return enum alone never supplies this fact.
-     */
-    public boolean canReleasePreflight(OemAttemptSnapshot snapshot,boolean nativeActive,
-            boolean backendActive,String originalAssociation) {
-        accept(snapshot);
-        return armed && !invalid && observed && snapshot!=null && snapshot.preflightRejected
-            && (snapshot.reentryIntent==0 || snapshot.reentryIntent==2)
-            && !nativeActive && !backendActive && ConnectionPolicy.originalAssociationCleared(originalAssociation);
-    }
-    public void releasedPreflight(OemAttemptSnapshot snapshot,boolean nativeActive,
-            boolean backendActive,String originalAssociation) throws IOException {
-        if(!canReleasePreflight(snapshot,nativeActive,backendActive,originalAssociation))
-            throw new IOException("oem-preflight-still-owned");
-        clear();
-    }
-    /** An explicit stop withdraws the selected attempt even if it never had a
-     * session. Original returned work plus a fresh Handler boundary are required.
-     */
-    public boolean canReleaseStopped(OemAttemptSnapshot snapshot,boolean nativeActive,
-            boolean backendActive,String originalAssociation,boolean explicitStop) {
-        accept(snapshot);
-        return armed && !invalid && observed && snapshot!=null && explicitStop && snapshot.workSettled
-            && (snapshot.reentryIntent==0 || snapshot.reentryIntent==2)
-            && !nativeActive && !backendActive && ConnectionPolicy.originalAssociationCleared(originalAssociation);
-    }
-    public void releasedStopped(OemAttemptSnapshot snapshot,boolean nativeActive,
-            boolean backendActive,String originalAssociation,boolean explicitStop) throws IOException {
-        if(!canReleaseStopped(snapshot,nativeActive,backendActive,originalAssociation,explicitStop))
-            throw new IOException("oem-stop-still-owned");
-        clear();
-    }
-    /** Retained reconnect metadata2 is permitted only for an explicit stop or
-     * switch AFTER this exact connect invocation had a genuine selected session.
-     * Unexpected loss keeps original ownership for cause-aware recovery.
-     */
-    public boolean canReleaseAfterSession(OemAttemptSnapshot snapshot,boolean nativeActive,
-            boolean backendActive,String originalAssociation,boolean explicitStopOrSwitch) {
-        accept(snapshot);
-        return armed && !invalid && observed && snapshot!=null && explicitStopOrSwitch
-            && sessionEntry>0 && snapshot.connectEntries==sessionEntry && snapshot.workSettled
-            && (snapshot.reentryIntent==0 || snapshot.reentryIntent==2)
-            && !nativeActive && !backendActive && ConnectionPolicy.originalAssociationCleared(originalAssociation);
-    }
-    public void releasedAfterSession(OemAttemptSnapshot snapshot,boolean nativeActive,
-            boolean backendActive,String originalAssociation,boolean explicitStopOrSwitch) throws IOException {
-        if(!canReleaseAfterSession(snapshot,nativeActive,backendActive,originalAssociation,explicitStopOrSwitch))
-            throw new IOException("oem-session-still-owned");
-        clear();
-    }
-    /** Process death ends that process's native work. Service recreation in the
-     * same PID/start-time does not supply this stronger lifetime boundary.
-     * The caller must independently prove the old process generation ended.
-     */
     public boolean canRetireReceiver(OemAttemptSnapshot replacement,boolean oldProcessEnded,
-            boolean nativeActive,boolean backendActive,String originalAssociation) {
-        if(!armed || !oldProcessEnded || replacement==null || replacement.unknown)return false;
+            boolean nativeActive,boolean backendActive,String association) {
+        if(!armed || !oldProcessEnded || !submissionReady(replacement))return false;
         String oldProcess=receiver.substring(0,receiver.lastIndexOf(':'));
         String nextProcess=replacement.receiver.substring(0,replacement.receiver.lastIndexOf(':'));
-        return !oldProcess.equals(nextProcess) && replacement.dispatches==0 && replacement.connectCalls==0
-            && replacement.queued==0 && replacement.reentryIntent==0
-            && (replacement.sequence==0 || replacement.complete)
-            && !nativeActive && !backendActive && ConnectionPolicy.originalAssociationCleared(originalAssociation);
+        return !oldProcess.equals(nextProcess) && !nativeActive && !backendActive
+            && ConnectionPolicy.originalAssociationCleared(association);
     }
     public void retiredReceiver(OemAttemptSnapshot replacement,boolean oldProcessEnded,
-            boolean nativeActive,boolean backendActive,String originalAssociation) throws IOException {
-        if(!canRetireReceiver(replacement,oldProcessEnded,nativeActive,backendActive,originalAssociation))
+            boolean nativeActive,boolean backendActive,String association) throws IOException {
+        if(!canRetireReceiver(replacement,oldProcessEnded,nativeActive,backendActive,association))
             throw new IOException("oem-receiver-lifetime-not-ended");
         clear();
     }
-    private void clear() {
-        armed=false;receiver="";target="";sequence=0;revision=0;observed=false;invalid=false;entries=0;sessionEntry=-1;
-    }
+    private void clear(){armed=false;invalid=false;receiver="";target="";sequence=0;revision=0;observedEpoch=0;}
 }

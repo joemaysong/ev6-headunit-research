@@ -21,7 +21,7 @@ public final class OemAttemptClient {
             for(int count=0;;count++) {
                 int next=input.read();
                 if(next==10)break;
-                if(next<0 || next<32 || next>126 || count>=512)throw new IOException("oem-attempt-reply-unavailable");
+                if(next<0 || next<32 || next>126 || count>=768)throw new IOException("oem-attempt-reply-unavailable");
                 bytes.write(next);
             }
             if(!generation.equals(session.generation()))throw new IOException("oem-attempt-receiver-changed");

@@ -25,6 +25,10 @@ public final class CarPlayController {
     static CarPlayController instance;
     final ConnectionPolicy policy=new ConnectionPolicy();
     final OemAttemptOwner attemptOwner=new OemAttemptOwner();
+    BluetoothWorkClient.Snapshot bluetoothPinned;
+    boolean bluetoothCancelSent;
+    long bluetoothCancelDeadline;
+    String bluetoothCleanupReason="",bluetoothResult="none";
     OemAttemptSnapshot preparationBaseline;
     final List<FileObserver> observers=new ArrayList<FileObserver>();
     final Properties knownPeers=new Properties();
@@ -34,14 +38,14 @@ public final class CarPlayController {
     NativeSession nativeSession;
     CarPlayDiscovery discovery;
     String phase="idle",lastStatus="",lastHfp="",pendingTarget="",selectedPeer="";
-    String lastAssessment="",pendingFailure="";
+    String lastAssessment="",pendingFailure="",publishedBusy;
     boolean ap,btRequested,needUserStop,stationQueryUnavailable;
     boolean oemConnectSubmitted,btDeferred;
     boolean manualSelection;
     String failedBootstrapTarget="",failedBootstrapEpoch="";
     long failedBootstrapCommand;
     long deadline,lastCommand,knownPeerDeadline,oemEndDeadline;
-    long pausedAt;
+    long pausedAt,activeCommand;
     int backendPid;
     int stationCount=-1,lastStationCount=-2;
     FileChannel lockChannel;
@@ -131,10 +135,13 @@ public final class CarPlayController {
         System.out.println("CARPLAY_STATE="+status);
     }
     void busy(boolean value) throws Exception {
+        String selected=value?policy.target:"";
+        if(selected.equals(publishedBusy))return;
         // The original Settings ODEX reads only these transient properties.
         prop("sys.ev6.cp.until",value?Long.toString(SystemClock.elapsedRealtime()/1000+90):"0");
-        prop("sys.ev6.cp.busy",value?policy.target:"");
+        prop("sys.ev6.cp.busy",selected);
         exec(null,4000,"/system/bin/am","broadcast","-a","getCarPlayConnectedDeviceAddress");
+        publishedBusy=selected;
     }
     void observe(File directory,final Set<String> names) {
         FileObserver observer=new FileObserver(directory.getPath(),FileObserver.CLOSE_WRITE|FileObserver.MOVED_TO|FileObserver.CREATE|FileObserver.DELETE) {
@@ -198,6 +205,9 @@ public final class CarPlayController {
         boolean accepted=(Boolean)call(manager,"com.broadcom.bt.hfdevice.hfbtcm.IHfDeviceBTCMService",partial?"btcmOnlyHfpConnect":"btcmConnect",new Class<?>[]{String.class},policy.target);
         write(new File(STATE,"last-bluetooth-request"),"elapsed="+SystemClock.elapsedRealtime()+" target_already_listed="+partial+" hfp_only="+partial+" accepted="+accepted);
         if(!accepted && !policy.target.equals(hfp())){fail("bluetooth-request-rejected-user-action-required");return false;}
+        if(accepted) {
+            pinBluetoothWork();
+        }
         mark("selected-bluetooth-requested");return true;
     }
     void subnet(String operation) throws Exception {
@@ -272,30 +282,46 @@ public final class CarPlayController {
     boolean backendSessionActive() throws Exception {
         return !read(new File(BACKEND,"session.state"),8).equals("0");
     }
-    boolean originalCleanupReady() throws Exception {
-        OemAttemptSnapshot snapshot=originalObservation();
-        boolean nativeActive=nativeSession.active();
-        boolean backendActive=backendSessionActive();
+    String backendState() throws Exception {
+        String value=read(new File(BACKEND,"session.state"),8);
+        return value.equals("0") || value.equals("1")?value:"UNKNOWN";
+    }
+    SessionEvidence runtimeEvidence() throws Exception {
+        OemAttemptSnapshot before=originalObservation();
+        if(before==null)return null;
+        boolean active=nativeSession.active(),owner=nativeSession.hasControlOwner();
+        String backend=backendState();
         String address=(String)pp("getCPConnectedBTAddress",new Class<?>[0]);
-        if(nativeActive || backendActive || !ConnectionPolicy.originalAssociationCleared(address))return false;
-        if(!attemptOwner.owned())return OemAttemptOwner.unownedCleanupReady(snapshot,policy.paused)
-            || (!oemConnectSubmitted && OemAttemptOwner.preparationCleanupReady(preparationBaseline,snapshot));
-        return attemptOwner.canRelease(snapshot,false,false,address)
-            || attemptOwner.canReleasePreflight(snapshot,false,false,address)
-            || attemptOwner.canReleaseStopped(snapshot,false,false,address,policy.paused);
+        OemAttemptSnapshot after=originalObservation();
+        String confirmed=(String)pp("getCPConnectedBTAddress",new Class<?>[0]);
+        if(address==null)address="";if(confirmed==null)confirmed="";
+        if(after==null || !before.receiver.equals(after.receiver) || before.revision!=after.revision
+            || active!=nativeSession.active() || owner!=nativeSession.hasControlOwner()
+            || !backend.equals(backendState()) || !address.equalsIgnoreCase(confirmed)
+            || (address.length()>0 && validTarget(address).length()==0))return null;
+        return new SessionEvidence(after,active,owner,backend,address);
+    }
+    boolean originalCleanupReady() throws Exception {
+        SessionEvidence evidence=runtimeEvidence();
+        if(evidence==null || !evidence.inactive())return false;
+        OemAttemptSnapshot snapshot=evidence.observation;
+        return attemptOwner.owned()?attemptOwner.canReleaseRecovered(snapshot,false,false,"")
+            :OemAttemptOwner.unownedCleanupReady(snapshot,policy.paused);
     }
     boolean retireOriginalAttempt() throws Exception {
-        OemAttemptSnapshot snapshot=originalObservation();
-        boolean active=nativeSession.active(),published=backendSessionActive();
-        String address=(String)pp("getCPConnectedBTAddress",new Class<?>[0]);
-        if(active || published || !ConnectionPolicy.originalAssociationCleared(address))return false;
-        if(!attemptOwner.owned())return OemAttemptOwner.unownedCleanupReady(snapshot,policy.paused)
-            || (!oemConnectSubmitted && OemAttemptOwner.preparationCleanupReady(preparationBaseline,snapshot));
-        if(attemptOwner.canRelease(snapshot,active,published,address))attemptOwner.released(snapshot,active,published,address);
-        else if(attemptOwner.canReleasePreflight(snapshot,active,published,address))attemptOwner.releasedPreflight(snapshot,active,published,address);
-        else if(attemptOwner.canReleaseStopped(snapshot,active,published,address,policy.paused))attemptOwner.releasedStopped(snapshot,active,published,address,policy.paused);
-        else return false;
-        return true;
+        SessionEvidence evidence=runtimeEvidence();
+        if(evidence==null || !evidence.inactive())return false;
+        if(!attemptOwner.owned())return OemAttemptOwner.unownedCleanupReady(evidence.observation,policy.paused);
+        if(!attemptOwner.canReleaseRecovered(evidence.observation,false,false,""))return false;
+        attemptOwner.releasedRecovered(evidence.observation,false,false,"");return true;
+    }
+    void state(String name,String value) throws Exception {write(new File(STATE,name),value);}
+    void clearState(String name) throws Exception {
+        File file=new File(STATE,name);
+        if(file.exists() && !file.delete())throw new IOException("state-removal-failed");
+    }
+    void commandStage(String stage,String reason) throws Exception {
+        if(activeCommand>0)state("command-outcome",activeCommand+" "+stage+" "+reason);
     }
     void begin(String target,boolean manual) throws Exception {
         if(nativeSession.active()) {mark("active-session-blocks-new-request");return;}
@@ -306,9 +332,12 @@ public final class CarPlayController {
         }
         if(!bonded(target) || !policy.begin(target,manual))return;
         preparationBaseline=baseline;
+        clearState("bluetooth-cleanup-result");
+        bluetoothPinned=null;bluetoothCancelSent=false;bluetoothResult="none";
         closeDiscovery();
         new File(STATE,"manual-pause").delete();
         manualSelection=manual;
+        if(manual)pinBluetoothWork();
         phase="preparing";btRequested=false;selectedPeer="";
         oemConnectSubmitted=false;btDeferred=false;oemEndDeadline=0;pendingFailure="";
         deadline=SystemClock.elapsedRealtime()+90000;
@@ -396,43 +425,73 @@ public final class CarPlayController {
         if(changed)storeProperties(new File(STATE,"bond-ack"),bonds.seen);
     }
     void started() throws Exception {
-        String address=(String)pp("getCPConnectedBTAddress",new Class<?>[0]);
-        if(!ConnectionPolicy.oemSessionReady(nativeSession.active(),read(new File(BACKEND,"session.state"),8).equals("1"),
-                nativeSession.hasControlOwner(),policy.target,address))return;
-        if(attemptOwner.owned())attemptOwner.observeSession(originalObservation(),true,true,true,address);
+        SessionEvidence evidence=runtimeEvidence();
+        if(evidence!=null && pendingTarget.length()>0 && evidence.activeFor(pendingTarget)
+                && attemptOwner.canTransferTo(evidence.observation,pendingTarget)) {
+            // An independent original USB/BT producer may already have started
+            // the explicitly selected successor. Adopt that real session once
+            // its predecessor's full finalized receipt is verified; do not
+            // wait for all native activity to vanish or submit a duplicate.
+            String next=pendingTarget;attemptOwner.transferTo(evidence.observation,next);
+            policy.ended();policy.begin(next,true);pendingTarget="";needUserStop=false;
+            clearState("manual-pause");
+        }
+        if(evidence==null || !evidence.activeFor(policy.target)) {
+            mark("active-session-awaiting-consistent-evidence");return;
+        }
+        if(attemptOwner.owned() && !attemptOwner.observeSession(evidence.observation,true,
+                evidence.backendState.equals("1"),true,evidence.association)) {
+            mark("active-session-owner-needs-review");return;
+        }
         preparationBaseline=null;
-        // The original service owns both the native control identifier and
-        // the PP association. Never manufacture either to make the UI light.
         boolean stopPending=policy.disconnecting;
-        policy.started();failedBootstrapCommand=0;failedBootstrapTarget="";failedBootstrapEpoch="";phase="connected";lastHfp="";savePeer();
-        write(new File(STATE,"current-target"),policy.target);busy(false);mark("genuine-carplay-connected");
+        policy.started();failedBootstrapCommand=0;failedBootstrapTarget="";failedBootstrapEpoch="";
+        phase="connected";lastHfp="";closeDiscovery();
+        if(evidence.observation.actualSessionTransport==2)savePeer();
+        state("current-target",policy.target);busy(false);
+        mark(evidence.observation.actualSessionTransport==1?"original-wired-session-connected":"genuine-carplay-connected");
+        if(!stopPending && pendingTarget.length()==0)commandStage("completed","actual-session-verified");
         if(stopPending || pendingTarget.length()>0)needUserStop=true;
     }
     void disconnect() throws Exception {
-        failedBootstrapCommand=0;failedBootstrapTarget="";failedBootstrapEpoch="";
         if(policy.target.length()==0 || policy.disconnecting)return;
-        policy.stopByUser();pausedAt=SystemClock.elapsedRealtime();bonds.clearSetups();
-        write(new File(STATE,"manual-pause"),Long.toString(pausedAt));
-        phase="disconnecting";deadline=SystemClock.elapsedRealtime()+15000;busy(true);
-        String activeAddress=(String)pp("getCPConnectedBTAddress",new Class<?>[0]);
-        if(!ConnectionPolicy.originalAssociationCleared(activeAddress) && !policy.target.equalsIgnoreCase(activeAddress))
-            throw new IOException("disconnect-target-mismatch");
-        // The original disconnect handler is used for a submitted pending
-        // attempt too. cancelConnectionPP only removes timeout31 and cannot
-        // establish cancellation of its in-flight call or original retry.
-        if(policy.connected || oemConnectSubmitted || attemptOwner.owned())
-            pp("disconnectPP",new Class<?>[]{int.class,String.class,int.class},1,policy.target,1);
+        // Persist explicit stop intent even when a diagnostic read is briefly
+        // unavailable; retry only the evidence read until original STOP is sent.
+        policy.paused=true;pausedAt=SystemClock.elapsedRealtime();bonds.clearSetups();
+        state("manual-pause",Long.toString(pausedAt));
+        boolean submitted=policy.connected || oemConnectSubmitted || attemptOwner.owned();
+        if(submitted) {
+            SessionEvidence evidence=runtimeEvidence();
+            if(evidence==null || !evidence.canSubmitStop(policy.target,true)) {
+                needUserStop=true;commandStage("pending","stop-evidence-unavailable");
+                mark("stop-awaiting-consistent-original-state");return;
+            }
+        }
+        failedBootstrapCommand=0;failedBootstrapTarget="";failedBootstrapEpoch="";
+        policy.stopByUser();phase="disconnecting";
+        deadline=SystemClock.elapsedRealtime()+15000;busy(true);
+        // Preserve the existing OEM targeted disconnectPP path and arguments.
+        if(submitted)pp("disconnectPP",new Class<?>[]{int.class,String.class,int.class},1,policy.target,1);
         else {phase="settling-original";closeDiscovery();}
-        mark("manual-disconnect-awaiting-finalized");
+        commandStage("submitted","original-stop-requested");mark("manual-disconnect-awaiting-finalized");
     }
     void ended() throws Exception {
-        if(!retireOriginalAttempt()){mark("waiting-original-work-before-cleanup");return;}
+        if(!retireOriginalAttempt()){
+            busy(false);commandStage("pending","original-completion-unverified");
+            mark("waiting-original-work-before-cleanup");return;
+        }
+        if(!finishBluetooth("original-stop"))return;
         closeDiscovery();
         String address=(String)pp("getCPConnectedBTAddress",new Class<?>[0]);
         if(!ConnectionPolicy.originalAssociationCleared(address))throw new IOException("oem-association-not-cleared");
-        policy.ended();phase="idle";new File(STATE,"current-target").delete();
+        policy.ended();phase="idle";clearState("current-target");
         oemEndDeadline=0;oemConnectSubmitted=false;pendingFailure="";
         String next=pendingTarget;pendingTarget="";
+        String btResult=read(new File(STATE,"bluetooth-cleanup-result"),100);
+        if(!btResult.equals("original-work-settled")) {
+            restoreClient();preparationBaseline=null;busy(false);
+            commandStage("pending","bluetooth-work-unresolved");mark("original-stop-bluetooth-work-unresolved");return;
+        }
         // An explicit switch still waits for genuine finalization. Reuse only
         // our own verified projection AP; a plain user stop restores client.
         if(next.length()>0 && bonded(next) && ap && new File(STATE,"ap-owner").exists()
@@ -443,6 +502,7 @@ public final class CarPlayController {
         }
         restoreClient();preparationBaseline=null;busy(false);mark(policy.paused?"paused-client-enabled":"disconnected-client-enabled");
         if(next.length()>0)begin(next,true);
+        else commandStage("completed","original-stop-verified");
     }
     /** Called ONLY for a newly accepted explicit native-UI selection command.
      * An original active session may have started over USB without this
@@ -450,57 +510,77 @@ public final class CarPlayController {
      * do not claim a published wireless session or start a second session.
      */
     void switchOriginalSessionByUser(String next) throws Exception {
-        if(!nativeSession.active() || policy.target.length()!=0 || attemptOwner.owned()) {
-            mark("manual-switch-original-state-changed");return;
+        if(policy.target.length()!=0 || attemptOwner.owned()) {
+            commandStage("pending","original-selection-changing");return;
         }
-        String active=validTarget((String)pp("getCPConnectedBTAddress",new Class<?>[0]));
-        OemAttemptSnapshot current=originalObservation();
-        if(active.length()==0 || active.equals(next) || !bonded(next)
-            || !nativeSession.hasControlOwner() || current==null || current.unknown
-            || current.sequence<1 || !active.equals(current.target)
-            || current.dispatches!=0 || current.connectCalls!=0 || current.queued!=0) {
+        SessionEvidence evidence=runtimeEvidence();
+        if(evidence==null || !evidence.nativeActive || !evidence.controlOwner
+                || !bonded(next) || validTarget(evidence.association).length()==0) {
+            commandStage("rejected","original-session-unverified");
             mark("manual-switch-original-owner-needs-review");return;
         }
-        // Re-read after the asynchronous diagnostic observation. A stale
-        // association never authorizes stopping a different original session.
-        String confirmed=validTarget((String)pp("getCPConnectedBTAddress",new Class<?>[0]));
-        if(!nativeSession.active() || !nativeSession.hasControlOwner() || !active.equals(confirmed)) {
-            mark("manual-switch-original-state-changed");return;
+        if(evidence.association.equalsIgnoreCase(next)) {
+            commandStage("completed","selected-device-already-active");return;
         }
-        attemptOwner.adopt(current,active);
-        policy.target=active;oemConnectSubmitted=true;pendingTarget=next;
-        // Existing original disconnectPP -> OEM Handler0x2d ->
-        // onDisconnectPP -> disconnectDPCarPlay. Actual finalization,
-        // empty queue and cleared original association still gate ended().
-        // policy.connected is deliberately NOT manufactured for USB.
+        attemptOwner.adoptForStop(evidence.observation,evidence.association,true,true,evidence.association);
+        policy.target=evidence.association;oemConnectSubmitted=true;pendingTarget=next;
         disconnect();
-        mark("manual-switch-awaiting-original-finalization");
     }
     void command() throws Exception {
         String command=read(new File(BUTTON,"command"),128);
         if(!command.matches("[1-9][0-9]{0,18} (connect|disconnect) (?:[0-9A-F]{2}:){5}[0-9A-F]{2}"))return;
         String[] fields=command.split(" ");long token=Long.parseLong(fields[0]);
         if(token<=lastCommand)return;
-        lastCommand=token;write(new File(STATE,"command-ack"),fields[0]);
-        String target=validTarget(fields[2]);if(!bonded(target))return;
-        if(fields[1].equals("disconnect")) {
-            if(target.equals(policy.target))disconnect();return;
+        lastCommand=token;activeCommand=token;
+        state("command-ack",fields[0]); // Consumption only; outcome has its own state.
+        commandStage("consumed",fields[1]);handleSelection(fields[1],validTarget(fields[2]));
+    }
+    void handleSelection(String action,String target) throws Exception {
+        if(!bonded(target)){commandStage("rejected","device-not-paired");return;}
+        if(phase.equals("settling-bluetooth") && action.equals("disconnect")) {
+            pendingTarget="";policy.paused=true;pausedAt=SystemClock.elapsedRealtime();
+            state("manual-pause",Long.toString(pausedAt));
+            commandStage("pending","original-bluetooth-canceling");return;
+        }
+        if(action.equals("disconnect")) {
+            if(target.equals(policy.target)){pendingTarget="";disconnect();}
+            else if(policy.target.length()==0 && !attemptOwner.owned()) {
+                SessionEvidence evidence=runtimeEvidence();
+                if(evidence!=null && evidence.nativeActive && evidence.controlOwner
+                        && target.equalsIgnoreCase(evidence.association)) {
+                    attemptOwner.adoptForStop(evidence.observation,target,true,true,evidence.association);
+                    policy.target=target;oemConnectSubmitted=true;pendingTarget="";disconnect();
+                } else commandStage("rejected","stop-target-not-active");
+            } else commandStage("rejected","stop-target-not-selected");
+            return;
         }
         if(nativeSession.active() && !policy.connected && policy.target.length()==0 && !attemptOwner.owned()) {
             switchOriginalSessionByUser(target);return;
         }
+        if(phase.equals("settling-bluetooth")) {
+            pendingTarget=target;commandStage("pending","bluetooth-cleanup-in-progress");return;
+        }
+        if(policy.disconnecting) {
+            pendingTarget=target;commandStage("pending","original-stop-in-progress");return;
+        }
         if(policy.connected) {
             if(!target.equals(policy.target)){pendingTarget=target;disconnect();}
+            else {
+                // A later explicit connect may withdraw a stop which has not
+                // yet passed evidence validation or been submitted to OEM.
+                if(needUserStop){needUserStop=false;policy.paused=false;clearState("manual-pause");}
+                commandStage("completed","selected-device-already-active");
+            }
             return;
         }
         if(!phase.equals("idle") && !phase.equals("error")) {
             if(!target.equals(policy.target)) {
                 if(oemConnectSubmitted || attemptOwner.owned() || nativeSession.active()) {pendingTarget=target;disconnect();}
-                else {closeDiscovery();policy.ended();phase="idle";begin(target,true);}
-            }
+                else {pendingTarget=target;fail("selection-superseded");}
+            } else commandStage("pending","selected-device-request-in-progress");
             return;
         }
-        begin(target,true);
+        begin(target,true);commandStage("pending","connection-preparation");
     }
     void fail(String code) throws Exception {
         closeDiscovery();
@@ -518,8 +598,68 @@ public final class CarPlayController {
             String epoch=observedPairingEpoch();
             if(epoch.length()>0) {failedBootstrapTarget=policy.target;failedBootstrapEpoch=epoch;failedBootstrapCommand=lastCommand;}
         }
+        if(!finishBluetooth(code))return;
         policy.ended();phase="error";restoreClient();preparationBaseline=null;busy(false);mark(code);pendingFailure="";oemConnectSubmitted=false;
-        if(pendingTarget.length()>0){String next=pendingTarget;pendingTarget="";begin(next,true);}
+        String btResult=read(new File(STATE,"bluetooth-cleanup-result"),100);
+        commandStage("failed",btResult.equals("unowned-work-preserved") || btResult.equals("ownership-unverified")
+            || btResult.equals("original-cancel-completion-unverified") || btResult.equals("selection-changed")
+            || btResult.equals("original-cancel-rejected")?"bluetooth-work-unresolved":code);
+        if(pendingTarget.length()>0) {
+            if(!btResult.equals("original-work-settled")) {
+                pendingTarget="";commandStage("rejected","bluetooth-work-unresolved");return;
+            }
+            String next=pendingTarget;pendingTarget="";begin(next,true);
+        }
+    }
+    BluetoothWorkClient.Snapshot readBluetoothWork() {
+        try {return BluetoothWorkClient.read();}catch(Exception unavailable){return null;}
+    }
+    void pinBluetoothWork() throws Exception {
+        if(!manualSelection || bluetoothPinned!=null || bluetoothCancelSent)return;
+        BluetoothWorkClient.Snapshot snapshot=readBluetoothWork();
+        // An explicit selection can retire the exact earlier, unfinished work
+        // after a failed preparation; it never adopts an active profile/session.
+        if(snapshot!=null && snapshot.eligible()) {
+            bluetoothPinned=snapshot;bluetoothResult="exact-work-observed";publishBluetoothWork();
+        }
+    }
+    void publishBluetoothWork() throws Exception {
+        state("bluetooth-work","revision=14 pinned="+(bluetoothPinned!=null)+" cancel_sent="+bluetoothCancelSent+" result="+bluetoothResult);
+    }
+    boolean finishBluetooth(String reason) throws Exception {
+        BluetoothWorkClient.Snapshot current=readBluetoothWork();
+        if(current!=null && current.settled()) {
+            bluetoothResult="original-work-settled";state("bluetooth-cleanup-result",bluetoothResult);publishBluetoothWork();return true;
+        }
+        if(bluetoothCancelSent) {
+            if(SystemClock.elapsedRealtime()<=bluetoothCancelDeadline) {
+                commandStage("pending","original-bluetooth-canceling");mark("waiting-original-bluetooth-cancel");return false;
+            }
+            bluetoothResult="original-cancel-completion-unverified";
+            state("bluetooth-cleanup-result",bluetoothResult);publishBluetoothWork();return true;
+        }
+        if(current==null || bluetoothPinned==null || !bluetoothPinned.sameWork(current) || !current.eligible()) {
+            bluetoothResult="unowned-work-preserved";state("bluetooth-cleanup-result",bluetoothResult);publishBluetoothWork();return true;
+        }
+        SessionEvidence evidence=runtimeEvidence();
+        if(evidence==null || !evidence.inactive() || !originalCleanupReady()) {
+            bluetoothResult="ownership-unverified";state("bluetooth-cleanup-result",bluetoothResult);publishBluetoothWork();return true;
+        }
+        String latest=read(new File(BUTTON,"command"),128);String[] fields=latest.split(" ");
+        if(fields.length!=3 || !fields[0].equals(Long.toString(lastCommand))
+            || !(fields[2].equals(policy.target) || fields[2].equals(pendingTarget))) {
+            bluetoothResult="selection-changed";state("bluetooth-cleanup-result",bluetoothResult);publishBluetoothWork();return true;
+        }
+        // Only the root-only original-process gate can issue the cancellation:
+        // exact receiver+work epoch+target checked under the OEM SM monitor.
+        bluetoothCancelSent=true;bluetoothCancelDeadline=SystemClock.elapsedRealtime()+15000;
+        bluetoothCleanupReason=reason;phase="settling-bluetooth";busy(false);
+        String reply;
+        try {reply=BluetoothWorkClient.cancel(bluetoothPinned);}
+        catch(Exception unavailable){reply="EV6BT1|UNVERIFIED";}
+        bluetoothResult=reply.equals("EV6BT1|ORIGINAL_CANCEL_DISPATCHED")?"original-cancel-submitted":"original-cancel-result-unverified";
+        state("bluetooth-cleanup-result",bluetoothResult);publishBluetoothWork();
+        commandStage("pending","original-bluetooth-canceling");return false;
     }
     void tick() throws Exception {
         command();
@@ -529,12 +669,25 @@ public final class CarPlayController {
         if(!((android.os.IInterface)pp).asBinder().isBinderAlive())throw new IOException("projection-service-exited");
         if(!new File("/proc/"+nativeSession.pid).exists())throw new IOException("native-process-exited");
         bondEvents(false);
+        if(manualSelection && phase.equals("waiting-native"))pinBluetoothWork();
         boolean active=nativeSession.active();
+        if(phase.equals("settling-bluetooth")) {
+            String reason=bluetoothCleanupReason;
+            if(active) {
+                bluetoothResult="original-session-preserved";publishBluetoothWork();
+                phase="settling-original";mark("bluetooth-cancel-interrupted-by-original-session");return;
+            }
+            if(!finishBluetooth(reason))return;
+            bluetoothCleanupReason="";
+            if(reason.equals("original-stop")){phase="settling-original";ended();}
+            else {phase="waiting-native";fail(reason);}
+            return;
+        }
         if(phase.equals("settling-original") || phase.equals("recovering-original")) {
             if(!attemptOwner.owned() && policy.target.length()==0) {
                 OemAttemptSnapshot recovered=originalObservation();
-                if(recovered!=null && !recovered.unknown && recovered.sequence>0) {
-                    attemptOwner.adopt(recovered,recovered.target);policy.target=recovered.target;oemConnectSubmitted=true;
+                if(recovered!=null && recovered.verifiedSession(recovered.sessionTarget)) {
+                    attemptOwner.adopt(recovered,recovered.sessionTarget);policy.target=recovered.sessionTarget;oemConnectSubmitted=true;
                 }
             }
             if(active) {
@@ -558,10 +711,24 @@ public final class CarPlayController {
             return;
         }
         if(policy.connected) {
-            if(policy.disconnecting && SystemClock.elapsedRealtime()>deadline)mark("disconnect-awaiting-original-finalization");
+            if(policy.disconnecting && active && pendingTarget.length()>0) {
+                SessionEvidence successor=runtimeEvidence();
+                if(successor!=null && successor.activeFor(pendingTarget)
+                        && attemptOwner.canTransferTo(successor.observation,pendingTarget)) {
+                    started();if(!policy.disconnecting)return;
+                }
+            }
+            if(policy.disconnecting && SystemClock.elapsedRealtime()>deadline) {
+                busy(false);commandStage("pending","original-finalization-overdue");
+                mark("disconnect-awaiting-original-finalization");return;
+            }
             mark(policy.disconnecting?"disconnecting":"connected");return;
         }
-        if(policy.disconnecting){mark("waiting-original-pending-stop-finalization");return;}
+        if(policy.disconnecting){
+            if(SystemClock.elapsedRealtime()>deadline)busy(false);
+            commandStage("pending","original-finalization-unverified");
+            mark("waiting-original-pending-stop-finalization");return;
+        }
         if(phase.equals("connecting") || phase.equals("waiting-native")) {
             if(active){
                 started();
@@ -679,6 +846,11 @@ public final class CarPlayController {
         lock=lockChannel.tryLock();if(lock==null)throw new IOException("controller-already-running");
         new File(BUTTON,"controller-ready").delete();
         checkFirmware();
+        long bridgeDeadline=SystemClock.elapsedRealtime()+15000;
+        while(readBluetoothWork()==null) {
+            if(SystemClock.elapsedRealtime()>bridgeDeadline)throw new IOException("bluetooth-work-bridge-unavailable");
+            Thread.sleep(250);
+        }
         if(!new File(ASSET,"wl-stations").canExecute())throw new IOException("station-reader-not-executable");
         String boot=read(new File("/proc/sys/kernel/random/boot_id"),128);
         boolean newBoot=!boot.equals(read(new File(STATE,"boot-id"),128));
@@ -753,8 +925,8 @@ public final class CarPlayController {
             OemAttemptSnapshot snapshot=originalObservation();
             ap=new File(STATE,"ap-owner").exists() && new File(STATE,"saved-client-state").exists()
                 && wifiState("getWifiApEnabledState")==13;
-            if(snapshot!=null && !snapshot.unknown && snapshot.sequence>0) {
-                attemptOwner.adopt(snapshot,snapshot.target);policy.target=snapshot.target;oemConnectSubmitted=true;
+            if(snapshot!=null && snapshot.verifiedSession(snapshot.sessionTarget)) {
+                attemptOwner.adopt(snapshot,snapshot.sessionTarget);policy.target=snapshot.sessionTarget;oemConnectSubmitted=true;
             }
             if(OemAttemptOwner.unownedCleanupReady(snapshot,policy.paused) && !nativeSession.active()
                 && ConnectionPolicy.originalAssociationCleared((String)pp("getCPConnectedBTAddress",new Class<?>[0])))

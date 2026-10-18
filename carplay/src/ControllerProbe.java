@@ -12,6 +12,10 @@ public final class ControllerProbe {
         if(target.length()==0)target=CarPlayController.validTarget(CarPlayController.prop("sys.ev6.cp.busy"));
         if(target.length()==0)target=CarPlayController.validTarget(CarPlayController.read(new File(CarPlayController.STATE,"migration-target"),32));
         controller.policy.target=target;
+        show("CONTROLLER_REVISION",14);
+        BluetoothWorkClient.Snapshot bluetooth=controller.readBluetoothWork();
+        show("BLUETOOTH_WORK_BRIDGE_READY",bluetooth!=null);
+        if(bluetooth!=null) {show("BLUETOOTH_WORK_STATE",bluetooth.state);show("BLUETOOTH_WORK_BUSY",bluetooth.busy);show("BLUETOOTH_PROFILES_EMPTY",bluetooth.empty);}
         String status=CarPlayController.read(new File(CarPlayController.STATE,"status"),128);
         if(status.matches("[a-z0-9_-]{1,100}"))show("CONTROLLER_STATUS",status);
         show("MANUAL_PAUSED",new File(CarPlayController.STATE,"manual-pause").exists());
