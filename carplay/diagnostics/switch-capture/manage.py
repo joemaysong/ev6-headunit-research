@@ -5,8 +5,9 @@ HERE=Path(__file__).resolve().parent
 ADB=os.environ.get('ADB','adb')
 r=subprocess.run([ADB,'devices'],capture_output=True,text=True,check=True)
 ids=[l.split()[0] for l in r.stdout.splitlines()[1:] if len(l.split())==2 and l.split()[1]=='device']
-if len(ids)!=1:raise SystemExit('Unique vehicle ADB required')
-os.environ['ADB']=ADB;os.environ['EV6_ADB_SERIAL']=ids[0];sys.path.insert(0,str(Path(__file__).resolve().parents[1]));import device
+serial=os.environ.get('EV6_ADB_SERIAL','')
+if not serial or serial not in ids:raise SystemExit('Set EV6_ADB_SERIAL to one connected authorized vehicle')
+os.environ['ADB']=ADB;sys.path.insert(0,str(Path(__file__).resolve().parents[1]));import device
 STAGE='/data/local/tmp/ev6-bt-lifecycle-capture-20261018'
 action=sys.argv[1] if len(sys.argv)==2 else ''
 def running():
@@ -21,10 +22,11 @@ def stop():
   time.sleep(1)
  raise RuntimeError('Sampler not finished; no files removed')
 if action=='start':
+ if not Path(os.environ.get('TIMELINE_JAR','')).is_file():raise RuntimeError('Set TIMELINE_JAR to the private built recorder')
  if device.exists(STAGE):raise RuntimeError('Existing capture retained; collect/remove first')
  device.shell('umask 077\nmkdir '+STAGE+'\nchmod 700 '+STAGE)
  device.push(HERE/'capture.sh',STAGE+'/capture.sh','700')
- device.push(HERE/'timeline.jar',STAGE+'/timeline.jar','600')
+ device.push(Path(os.environ['TIMELINE_JAR']),STAGE+'/timeline.jar','600')
  try:device.shell("(trap '' HUP; /system/bin/sh "+STAGE+'/capture.sh '+STAGE+' >'+STAGE+'/samples.log 2>&1 </dev/null) &',timeout=8)
  except subprocess.TimeoutExpired:pass
  time.sleep(1)
