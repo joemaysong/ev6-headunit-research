@@ -1,18 +1,39 @@
-# EV6 Head Unit Research — V16 final
+# EV6 Head Unit Research - V16 final
 
-Owner-selected final: **2026.10.18-v16-final**, October18,2026 (Asia/Taipei).
+Owner-selected reference: **2026.10.18-v16-final**, October 18, 2026 (Asia/Taipei).
 
-## Current working combination
+V16 combines the Wired Added/Updated gate16 with controller/Bluetooth revision14,
+EV6ATTEMPT13 session reconciliation, and the retained OEM9 backend/audio/UI.
+Original iAP2/MFi and PhoneProjection keep authentication and session ownership.
+Targeted Added and Updated starts each returned first native OK, established an
+identity-verified wired session and finalized after unplug. The owner later
+reported free switching normal. Exact Bluetooth cancellation remains unexercised;
+this is scoped acceptance, with no full Apple/MFi certification claim.
 
-- V13 separates device identity, requests, local session generations and negotiated transport. Late callbacks do not complete successor requests.
-- V14 controller and in-process Bluetooth exact-work bridge preserve original cancellation and guard receiver/work identity. Positive exact-cancel dispatch remains unexercised; it is not claimed accepted.
-- V16 USB identification requests wait for a fresh original Wired **Added or Updated** callback, matching USB/intent generation, device identity and current OEM controller object. Original request API, error/retry handling and active-session behavior are preserved.
-- Existing PCM drain, original iAP2/MFi and PhoneProjection ownership remain.
+## Reproduce with another Codex workspace
 
-Targeted Added and Updated wired starts both returned first native OK and established an identity-verified wired session, with no INVALID_ARGUMENT, Phone is not responding or OEM USB reset. Unplug finalized the exact sessions. The owner later reported normal free switching. This is scoped evidence, not exhaustive switching or Apple/MFi certification.
+Give Codex this repository and the owner's private originals, and ask it to read
+[AGENTS.md](AGENTS.md) and follow [the reproduction workflow](docs/17-reproduction-and-porting.md).
+The [component map](carplay/README.md), [build commands](docs/11-build-and-deployment.md),
+[rollback plan](docs/13-rollback-and-porting.md), [current inventory](profiles/v16-release.json)
+and [review evidence](validation/v16-reproduction-review.json) specify the inputs,
+transformations, outputs, checks and target-specific boundaries.
 
-## Build, recovery and diagnostics
+Matching firmware can reuse the hash-locked reconstruction recipes. Another
+vehicle/firmware needs its own profile, native/Binder/Handler contracts and
+controlled acceptance. A working reference implementation does not establish
+compatibility with arbitrary vehicles. The workflow identifies those differences
+before system writes.
 
-See [build guide](docs/11-build-and-deployment.md), [validation](docs/12-validation-and-open-issues.md), [recovery](docs/13-rollback-and-porting.md), [diagnostic reconstruction](docs/15-diagnostics-and-retention.md) and [owner checklist](docs/16-owner-switching-tests.md).
+## Publication and private retention
 
-Only project-authored English source and text are published. No OEM decompilation, firmware, IMG, APK/ODEX/DEX/SO/JAR, signing key/certificate, credentials, pairing databases, raw captures or private identifiers are distributed. Exact final assets and original backups remain private. Embedded observation/work bridges are runtime dependencies; standalone test recorders are optional and disposable.
+Publish project-authored English source/text only. Keep OEM firmware and smali,
+IMG/APK/ODEX/DEX/SO/JAR, exact restoration assets, private signing keys/certificates,
+credentials, pairing data, raw captures and identifiers privately. Preserve
+existing signing identities for updates; builders never silently create keys.
+See [retention](docs/13-rollback-and-porting.md) and [publication checks](tools/check_publication.py).
+
+[Architecture](docs/06-carplay-architecture.md), [acceptance limits](docs/12-validation-and-open-issues.md),
+[optional diagnostics](docs/15-diagnostics-and-retention.md) and
+[owner switching matrix](docs/16-owner-switching-tests.md) describe current behavior.
+[Historical evidence](validation/README.md) is version-scoped separately.

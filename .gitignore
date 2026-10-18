@@ -54,3 +54,10 @@ carplay/previous-validated-final1/
 **/timeline-build/
 **/timeline.jar
 **/private-captures/
+# Per-owner work and signing identities stay private, including unusual extensions.
+owner-private-work/
+*.p8
+*.p7b
+*.p7c
+*.asc
+*.mobileprovision
