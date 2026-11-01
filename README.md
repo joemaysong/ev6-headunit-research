@@ -10,6 +10,13 @@ identity-verified wired session and finalized after unplug. The owner later
 reported free switching normal. Exact Bluetooth cancellation remains unexercised;
 this is scoped acceptance, with no full Apple/MFi certification claim.
 
+## Experimental integration progress
+
+See the [candidate 61 progress review](docs/18-leafia-integration-progress.md) for
+Leafia-inspired development as of 2026-11-01. Wireless AA projection is not yet
+verified, and native failure cleanup remains unresolved. V16 below remains the
+public reproduction reference; candidate 61 is not a public deployment release.
+
 ## Reproduce with another Codex workspace
 
 Give Codex this repository and the owner's private originals, and ask it to read

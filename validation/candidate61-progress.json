@@ -1,0 +1,20 @@
+{
+  "record_kind": "sanitized_private_experiment_summary",
+  "date": "2026-11-01",
+  "timezone": "Asia/Taipei",
+  "public_reference": "V16",
+  "experimental_candidate": 61,
+  "candidate60_cp_observed_cycles": 2,
+  "candidate61_installed_and_initial_idle_verified": true,
+  "candidate61_cp_cycle_repeated": false,
+  "aa_wpp_wifi_information_observed": true,
+  "aa_wifi_association_verified": false,
+  "aa_tcp_pair_connected": false,
+  "aa_projection_verified": false,
+  "aa_timeout_spinner_stopped_owner_confirmed": true,
+  "aa_native_cleanup_complete": false,
+  "aa_ap_shutdown_verified_after_failed_attempt": false,
+  "mac_cleanup_reported_complete": true,
+  "usb_default_route_preserved_observed": true,
+  "candidate61_payload_published": false
+}
