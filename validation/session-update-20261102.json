@@ -1,0 +1,26 @@
+{
+  "record_kind": "sanitized_cross_session_summary",
+  "date": "2026-11-02",
+  "timezone": "Asia/Taipei",
+  "public_reference": "V16",
+  "installed_projection_candidate": 67,
+  "offline_packaged_projection_candidate": 69,
+  "candidate69_deployed": false,
+  "aa_render_input_and_complete_teardown_accepted": false,
+  "private_suite_counts_reported": {
+    "receiver_stop": 105,
+    "lease": 155,
+    "java_identity": 17,
+    "python_supervisor": 28
+  },
+  "private_tests_rerun_for_publication": false,
+  "breathing_vehicle_version": "1.1.2",
+  "breathing_boot_action_passed": true,
+  "breathing_color_steps_observed_minimum": 7,
+  "breathing_physical_reboot_after_fix_verified": false,
+  "public_breathing_diagnostics_language": "English",
+  "raw_captures_or_oem_payloads_included": false,
+  "public_breathing_export_compiled": true,
+  "public_breathing_apk_signature_verified": true,
+  "public_export_installed_on_vehicle": false
+}

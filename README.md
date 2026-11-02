@@ -12,10 +12,12 @@ this is scoped acceptance, with no full Apple/MFi certification claim.
 
 ## Experimental integration progress
 
-See the [candidate 61 progress review](docs/18-leafia-integration-progress.md) for
-Leafia-inspired development as of 2026-11-01. Wireless AA projection is not yet
-verified, and native failure cleanup remains unresolved. V16 below remains the
-public reproduction reference; candidate 61 is not a public deployment release.
+See the [2026-11-02 session update](docs/19-candidate69-and-session-update.md):
+candidate 69 has offline fixes and a private package, but remains undeployed;
+candidate 67 is retained on the vehicle. Full AA rendering/input and cleanup
+acceptance remain pending. V16 below remains the public reproduction reference.
+The [breathing-light 1.1.2 source](ambient/music-vibe/README.md) includes the
+asynchronous boot-restore fix and a separate build/rollback route.
 
 ## Reproduce with another Codex workspace
 

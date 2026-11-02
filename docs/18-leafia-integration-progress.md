@@ -1,6 +1,7 @@
 # Leafia-inspired integration: experimental candidate 61
 
-Status date: 2026-11-01 (Asia/Taipei).
+Status date: 2026-11-01 (Asia/Taipei). Historical snapshot; see the
+[2026-11-02 update](19-candidate69-and-session-update.md) for the newer checkpoint.
 
 The reproducible public reference remains V16. Candidate 61 is a private,
 vehicle-specific experimental build, not a new public firmware release or a
