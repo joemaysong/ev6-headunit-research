@@ -46,3 +46,7 @@ See [retention](docs/13-rollback-and-porting.md) and [publication checks](tools/
 [optional diagnostics](docs/15-diagnostics-and-retention.md) and
 [owner switching matrix](docs/16-owner-switching-tests.md) describe current behavior.
 [Historical evidence](validation/README.md) is version-scoped separately.
+
+## V17
+
+The owner promoted candidate92 to V17. See [release acceptance and limits](docs/20-v17-release.md), [profile](profiles/v17-release.json) and [integration source](v17/README.md). V16 instructions remain historical and are not a V17 installation recipe.

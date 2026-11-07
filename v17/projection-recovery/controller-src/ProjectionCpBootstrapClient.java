@@ -1,0 +1,11 @@
+import android.os.*;
+/** Read-only live capability. A missing endpoint or AA silence never means CP. */
+public final class ProjectionCpBootstrapClient {
+ public static final class Ticket {private final IBinder owner;private final int operation;public final String incarnation,address;public final long epoch;private Ticket(IBinder owner,int operation,String incarnation,long epoch,String address){this.owner=owner;this.operation=operation;this.incarnation=incarnation;this.epoch=epoch;this.address=address;}}
+ private static IBinder endpoint()throws Exception{return (IBinder)Class.forName("android.os.ServiceManager").getMethod("checkService",String.class).invoke(null,"ev6.projection.cp.bootstrap");}
+ public static Ticket read()throws Exception{return read(1);}
+ /** Genuine OEM CP SPP route, not capability/success evidence. No side effects. */
+ public static Ticket readOriginalHandshake()throws Exception{return read(5);}
+ private static Ticket read(int operation)throws Exception{IBinder b=endpoint();if(b==null||!b.isBinderAlive())return null;Parcel in=Parcel.obtain(),out=Parcel.obtain();try{in.writeInterfaceToken("org.ev6.CpBootstrap1");in.writeInt(1);if(!b.transact(operation,in,out,0))throw new IllegalStateException("cp-bootstrap-no-reply");out.readException();if(out.readInt()!=1)throw new IllegalStateException("cp-bootstrap-version");String inc=out.readString();int ready=out.readInt();if(inc==null||!inc.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")||(ready!=0&&ready!=1))throw new IllegalStateException("cp-bootstrap-header");long epoch=ready==1?out.readLong():0;String peer=ready==1?out.readString():null;if(out.dataAvail()!=0||endpoint()!=b||!b.isBinderAlive()||(ready==1&&(epoch<=0||peer==null||!peer.matches("(?:[0-9A-F]{2}:){5}[0-9A-F]{2}"))))throw new IllegalStateException("cp-bootstrap-source");return ready==1?new Ticket(b,operation,inc,epoch,peer):null;}finally{in.recycle();out.recycle();}}
+ public static boolean matches(Ticket ticket)throws Exception{Ticket now=ticket==null?null:read(ticket.operation);return ticket!=null&&now!=null&&ticket.owner==now.owner&&ticket.incarnation.equals(now.incarnation)&&ticket.epoch==now.epoch&&ticket.address.equals(now.address);}
+}

@@ -1,0 +1,15 @@
+package org.ev6.launchpad;
+import android.net.*;import java.io.*;import java.util.*;
+/** Root-owned bridge. Peer UID must match the installed Launchpad package. */
+public final class RootBridge {
+ static String apk;static final File DIR=new File("/data/local/ev6-launchpad");static BridgeLease lease;
+ public static void main(String[] a)throws Exception{apk=a[0];DIR.mkdirs();lease=BridgeLease.acquire(new File(DIR,"bridge.lock"));if(lease==null){KnobDaemon.log("bridge already running; duplicate start ignored");return;}final LocalServerSocket server=new LocalServerSocket("ev6.launchpad.control.v2");KnobDaemon.log("bridge ready");Thread knob=new Thread(new Runnable(){public void run(){KnobDaemon.main(new String[0]);}},"LaunchpadKeys");knob.setDaemon(true);knob.start();new Timer(true).schedule(new TimerTask(){public void run(){if(uid()<0||new File(DIR,"bridge-stop").exists()){KnobDaemon.log("package absent; bridge exit");System.exit(0);}}},5000,5000);
+ while(true){LocalSocket socket=server.accept();try{socket.setSoTimeout(20000);int peer=socket.getPeerCredentials().getUid();if(peer!=uid()&&peer!=0&&peer!=2000){socket.close();continue;}DataInputStream in=new DataInputStream(socket.getInputStream());String action=in.readUTF();long deadline=in.readLong();if(deadline-android.os.SystemClock.elapsedRealtime()<60000)throw new IOException("Request expired in queue; no action executed");boolean ok=false;String result;
+  if(!action.matches("(adb-(status|(usb|tcp)-(on|off))|vibe-(enable|disable|diag|remove|status)|pad-(enable|disable|diag|remove|ping)|voice-(enable|disable|diag)|vibe-config:(true|false):(clockwise|counterclockwise|random):([2-9]|1[0-9]|20))"))result="Unsupported action";
+  else if(action.equals("pad-ping")){ok=true;result="Bridge ready";}
+  else{KnobDaemon.log("action "+action+" caller="+peer);String current=RootTool.cmd("pm","path","org.ev6.launchpad").trim().replace("package:","");ProcessBuilder builder=new ProcessBuilder("/system/bin/app_process","/system/bin","org.ev6.launchpad.RootTool",action).redirectErrorStream(true);builder.environment().put("CLASSPATH",current);result=BoundedProcess.run(builder,60000,90000);ok=result.contains("RESULT_OK");result=result.replace("RESULT_OK\n","").trim();KnobDaemon.log("result "+action+" ok="+ok);}
+  byte[] bytes=result.getBytes("UTF-8");DataOutputStream out=new DataOutputStream(socket.getOutputStream());out.writeBoolean(ok);out.writeInt(bytes.length);out.write(bytes);out.flush();
+ }catch(Exception e){KnobDaemon.log("bridge request error "+e);try{byte[] error=("Operation failed: "+e.getMessage()).getBytes("UTF-8");DataOutputStream reply=new DataOutputStream(socket.getOutputStream());reply.writeBoolean(false);reply.writeInt(error.length);reply.write(error);reply.flush();}catch(Exception ignored){}}finally{socket.close();}}
+ }
+ static int uid(){try{BufferedReader r=new BufferedReader(new FileReader("/data/system/packages.list"));try{String s;while((s=r.readLine())!=null){String[] v=s.split(" ");if(v.length>1&&v[0].equals("org.ev6.launchpad"))return Integer.parseInt(v[1]);}}finally{r.close();}}catch(Exception ignored){}return -1;}
+}

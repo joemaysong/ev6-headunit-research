@@ -1,0 +1,9 @@
+{
+  "version": "V17",
+  "candidate": "92-releasefast",
+  "date": "2026-11-07",
+  "publication": "source-only",
+  "installed_package_sha256": "6ac33d8b172fcfdbb61312a9823aad56b8022e079691efa26a7c7ed9212bbc5c",
+  "acceptance": "docs/20-v17-release.md",
+  "no_redeployment_required": true
+}
