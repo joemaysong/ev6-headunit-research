@@ -1398,6 +1398,35 @@ public final class CarPlayController {
             if(!prior.equals(ProjectionMaintenance.requestBoot(marker))||!owner.equals(ProjectionMaintenance.request(marker,prior))||!held.equals(store.stoppedMaintenanceSnapshot())||!current.equals(ProjectionApOwnerRecord.readBoot(new File("/proc/sys/kernel/random/boot_id")).replace("-","")))throw new IOException("exclusive-recovery-maintenance-changed");
         }});
     }
+    private long nextIdleUiRecovery;
+    private String idleUiRecoveryResult="";
+    /** Late-restored menu journals must not wait for another deployment maintenance. */
+    private void recoverIdleAaUi() {
+        long now=System.nanoTime()/1000000L;
+        if(now<nextIdleUiRecovery)return;
+        nextIdleUiRecovery=now+5000L;
+        try {
+            if(exclusiveRuntime==null||!exclusiveRuntime.firstPairIdle()||projectionReleasePending
+                ||policy.disconnecting||attemptOwner.owned()||backendSessionActive())return;
+            final String boot=ProjectionApOwnerRecord.readBoot(new File("/proc/sys/kernel/random/boot_id")).replace("-","");
+            ProjectionIdleRecoveryFence.run(new File("/data/local/ev6-projection/reservation"),boot,new ProjectionIdleRecoveryFence.Proof(){public void certify()throws Exception {
+                ProjectionUiRecoveryClient.certify(new ProjectionUiRecoveryClient.Port(){public void verify()throws Exception {
+                    requireStartupCohort();
+                    if(new File("/data/local/ev6-projection/maintenance").exists()
+                        ||!exclusiveRuntime.firstPairIdle()||nativeSession.active()||backendSessionActive()
+                        ||attemptOwner.owned()||policy.connected||policy.disconnecting||projectionReleasePending
+                        ||!originalCleanupReady()||AaApDemandClient.pendingRoots()||!new ProjectionAaDeferredClient().idle()
+                        ||wifiState("getWifiApEnabledState")!=11)
+                        throw new IOException("idle-ui-recovery-work-present");
+                    if(!boot.equals(ProjectionApOwnerRecord.readBoot(new File("/proc/sys/kernel/random/boot_id")).replace("-","")))
+                        throw new IOException("idle-ui-recovery-boot-changed");
+                }});
+            }});
+        }catch(Exception blocked){
+            String result="blocked:"+blocked.getClass().getSimpleName()+":"+String.valueOf(blocked.getMessage());
+            if(!result.equals(idleUiRecoveryResult)){idleUiRecoveryResult=result;try{state("aa-ui-recovery",result);}catch(Exception ignored){}}
+        }
+    }
     private boolean exclusiveMaintenanceDrained;
     private boolean maintenanceTick()throws Exception {
         exclusiveMaintenanceDrained=false;
@@ -1489,6 +1518,37 @@ public final class CarPlayController {
             state("maintenance-result","waiting-reservation");return false;
         }catch(Exception error){state("maintenance-result","blocked:"+error.getMessage());return true;}
     }
+    private boolean wiredStorePrepared;
+    private long wiredStoreNextCheck;
+    private String wiredStoreLastResult="";
+    /** Root-only cold wired admission. Never borrows an AP request or rewrites a held lease. */
+    private void prepareWiredStore() {
+        if(wiredStorePrepared || SystemClock.elapsedRealtime()<wiredStoreNextCheck)return;
+        wiredStoreNextCheck=SystemClock.elapsedRealtime()+2000L;
+        try {
+            final String boot=ProjectionApOwnerRecord.readBoot(new File("/proc/sys/kernel/random/boot_id")).replace("-","");
+            String result=ProjectionWiredBootStore.prepare(new File("/data/local/ev6-projection/reservation"),boot,new ProjectionWiredBootStore.Gate(){
+                public boolean idle()throws Exception {
+                    if(android.os.Process.myUid()!=0 || exclusiveRuntime==null || !exclusiveRuntime.firstPairIdle()
+                        || backendSessionActive() || !originalCleanupReady() || ap || startupAttempted
+                        || startingAaDemand!=null || AaApDemandClient.pendingRoots() || !new ProjectionAaDeferredClient().idle())return false;
+                    for(String name:new String[]{"ap-owner","saved-client-state","ap-subnet.original","ap-firewall.owner","aa-firewall.owner","aa-firewall.owner.next","ap-startup-abort.properties","ap-startup-"+boot+".journal"})if(new File(STATE,name).exists())return false;
+                    return wifiState("getWifiApEnabledState")==11
+                        && Integer.valueOf(0).equals(pp("getPhoneProjectionStatus",new Class<?>[0]));
+                }
+                public void secure(File file)throws Exception {
+                    exec(null,5000,"/system/bin/chown","0.1000",file.getPath());
+                    exec(null,5000,"/system/bin/chmod","0664",file.getPath());
+                }
+                public void sync(File parent)throws Exception {DirectorySync.sync(parent);}
+            });
+            if(!result.equals(wiredStoreLastResult)){state("wired-store-result",result);wiredStoreLastResult=result;}
+            wiredStorePrepared=result.equals("ready")||result.equals("created")||result.equals("idle-boot-renewed");
+        }catch(Exception error){
+            String result="blocked:"+error.getClass().getSimpleName();
+            if(!result.equals(wiredStoreLastResult))try{state("wired-store-result",result);wiredStoreLastResult=result;}catch(Exception ignored){}
+        }
+    }
     void tick() throws Exception {
         if(new File(STATE,"stop").exists() || !new File(BASE,"enabled").exists())throw new IOException("controller-stop");
         boolean maintenance=org.ev6.projection.ProjectionReservation.store().maintenanceRequested();
@@ -1498,6 +1558,7 @@ public final class CarPlayController {
             if(exclusiveRuntime!=null)try{if(exclusiveMaintenanceDrained)certifyExclusiveRecovery();state("maintenance-result",exclusiveRuntime.maintenanceCompleted(exclusiveMaintenanceDrained)?"drained-admission-held":"waiting-exclusive-cleanup");}catch(Exception blocked){state("maintenance-result","waiting-exclusive-cleanup");}
             return;
         }
+        prepareWiredStore();
         command();
         if(exclusiveRuntime!=null)try{exclusiveRuntime.tick();}catch(Exception blocked){
             // Keep ordinary OEM/native cleanup running. A missing Binder or an uncertain
@@ -1510,6 +1571,7 @@ public final class CarPlayController {
         if(!((android.os.IInterface)pp).asBinder().isBinderAlive())throw new IOException("projection-service-exited");
         if(!new File("/proc/"+nativeSession.pid).exists())throw new IOException("native-process-exited");
         if(projectionReleasePending){resumeProjectionRelease();return;}
+        recoverIdleAaUi();
         bondEvents(false);
         if(firstPairs.pending()&&nativeSession.active())firstPairs.clear();
         if(manualSelection && phase.equals("waiting-native"))pinBluetoothWork();

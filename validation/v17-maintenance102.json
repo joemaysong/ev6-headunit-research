@@ -1,0 +1,36 @@
+{
+  "release": "V17.0.1",
+  "candidate": 102,
+  "date": "2026-11-18",
+  "public_overlay_rebuilt": true,
+  "actual_dex_proof": {
+    "base_sha256": "c3df6fa0025b103c57069fc13f806408dba91264d33e33db1a23dd097e79e16d",
+    "payload_sha256": {
+      "HKMC_GPM.dex": "9a827bd04a4d4769aae733d9ed5bcdfecde044434873ad63b9369d25f764983e"
+    },
+    "changed_methods": {
+      "com/google/android/projection/service/GalReceiverService.smali": [
+        "ev6AaObservedOriginal_onStartCommand(Landroid/content/Intent;II)I"
+      ]
+    },
+    "unchanged_classes": 1480,
+    "other_methods_preserved": true,
+    "cp_and_usb_methods_preserved": true,
+    "installed": false
+  },
+  "previous_offline_checks": {
+    "restart": 34,
+    "handoff": 329,
+    "lease": 200,
+    "receiver": 105,
+    "cp_regression_suites": "passed before deployment"
+  },
+  "current_runtime": {
+    "vivo_wireless_aa_stop_reconnect_twice": "passed",
+    "iphone_wireless_cp_first_pair_stop_reconnect": "passed",
+    "wired_cp": "not rerun on candidate102",
+    "cross_device_exclusion": "not rerun on candidate102"
+  },
+  "full_matrix_passed": false,
+  "raw_captures_published": false
+}

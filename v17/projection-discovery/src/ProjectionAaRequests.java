@@ -3,8 +3,10 @@ import java.util.HashMap;
 public final class ProjectionAaRequests {
  public static final class Request {
   public final String id,address;public final boolean disconnect;
-  private final long created=System.nanoTime();private boolean started,ambiguous,cancelled,deferred,managed;private Object ticket;
-  private Request(String i,String a,boolean d){id=i;address=a;disconnect=d;}
+  final Object selectionSource;
+  private final long created=System.nanoTime();private boolean started,ambiguous,cancelled,deferred,managed,userSelected;private Object ticket;
+  private Request(String i,String a,boolean d){this(i,a,d,null);}
+  private Request(String i,String a,boolean d,Object source){id=i;address=a;disconnect=d;selectionSource=source;}
   public synchronized Object ticket(){return ambiguous?null:ticket;}
  }
  private final HashMap<String,Request> records=new HashMap<String,Request>();
@@ -17,7 +19,33 @@ public final class ProjectionAaRequests {
   if(records.size()+retiredManaged.size()>=64)throw new IllegalStateException("request-capacity");
   Request r=new Request(id,address,false);r.deferred=true;r.managed=true;records.put(id,r);return r;
  }
- public synchronized Request prepare(String address,boolean disconnect){if(address==null||!address.matches("(?i)([0-9a-f]{2}:){5}[0-9a-f]{2}"))throw new IllegalArgumentException();java.util.Iterator<Request> old=records.values().iterator();long now=System.nanoTime();while(old.hasNext()){Request prior=old.next();synchronized(prior){if(!prior.started&&!prior.deferred&&now-prior.created>300000000000L)old.remove();}}if(records.size()+retiredManaged.size()>=64)throw new IllegalStateException("request-capacity");Request r=new Request(java.util.UUID.randomUUID().toString(),address.toUpperCase(java.util.Locale.US),disconnect);records.put(r.id,r);return r;}
+ public synchronized Request prepare(String address,boolean disconnect){return prepare(address,disconnect,null);}
+ public synchronized Request prepare(String address,boolean disconnect,Object selectionSource){if(address==null||!address.matches("(?i)([0-9a-f]{2}:){5}[0-9a-f]{2}"))throw new IllegalArgumentException();java.util.Iterator<Request> old=records.values().iterator();long now=System.nanoTime();while(old.hasNext()){Request prior=old.next();synchronized(prior){if(!prior.started&&!prior.deferred&&now-prior.created>300000000000L)old.remove();}}if(records.size()+retiredManaged.size()>=64)throw new IllegalStateException("request-capacity");Request r=new Request(java.util.UUID.randomUUID().toString(),address.toUpperCase(java.util.Locale.US),disconnect,selectionSource);records.put(r.id,r);return r;}
+ /** Reuse the same outstanding START for this peer, including one already dispatched. */
+ public synchronized Request outstandingStart(String address){
+  expireDeferred();
+  long now=System.nanoTime();
+  for(Request r:records.values())if(!r.disconnect&&r.address.equalsIgnoreCase(address)){
+   synchronized(r){
+    if(!r.cancelled&&(r.started||r.deferred||now-r.created<300000000000L))return r;
+   }
+  }
+  return null;
+ }
+ public synchronized boolean selectStart(Request r){
+  if(r==null||records.get(r.id)!=r||r.disconnect)return false;
+  synchronized(r){
+   if(r.started||r.cancelled)return false;
+   r.userSelected=true;
+   return defer(r);
+  }
+ }
+ public synchronized boolean userSelected(Request r){synchronized(r){return r.userSelected;}}
+ public synchronized boolean joinableAutomaticStart(String address){
+  Request r=outstandingStart(address);
+  if(r==null)return false;
+  synchronized(r){return r.managed&&!r.userSelected;}
+ }
  public synchronized Request prepareRootStop(String id,String address){if(id==null||!id.matches("[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}")||address==null||!address.matches("(?i)([0-9a-f]{2}:){5}[0-9a-f]{2}"))throw new IllegalArgumentException();Request prior=records.get(id);if(prior!=null){if(!prior.disconnect||!prior.address.equalsIgnoreCase(address))throw new IllegalStateException("root-stop-collision");return prior;}if(records.size()+retiredManaged.size()>=64)throw new IllegalStateException("request-capacity");Request r=new Request(id,address.toUpperCase(java.util.Locale.US),true);records.put(id,r);return r;}
  public synchronized Request find(String id,String address,boolean disconnect){Request r=records.get(id);return r!=null&&r.address.equalsIgnoreCase(address)&&r.disconnect==disconnect?r:null;}
  /** Only pre-effect deferred requests expire. Issued/ambiguous effects never become success. */

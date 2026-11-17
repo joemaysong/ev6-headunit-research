@@ -36,10 +36,12 @@ public final class ProjectionDiscovery {
   private Launch(Intent i){address=i.peer.address;type=i.type;observedGeneration=i.peer.generation;}
  }
  public static final class Snapshot {
-  public final long generation;public final boolean linkUp,conflict,projecting;public final int displayType,readyType,buttonType;
+  public final long generation;public final boolean linkUp,conflict,projecting,temporaryAaButton;public final int displayType,readyType,buttonType;
   private Snapshot(Peer p){generation=p.generation;linkUp=p.up;conflict=p.conflict;projecting=p.session!=null;
    displayType=p.session!=null?p.session.type:p.conflict?UNKNOWN:p.confirmed!=0?p.confirmed:p.retained!=0?p.retained:p.hint;
-   readyType=p.up&&!p.conflict?p.confirmed:UNKNOWN;buttonType=p.conflict?UNKNOWN:p.hint;}
+   readyType=p.up&&!p.conflict?p.confirmed:UNKNOWN;
+   temporaryAaButton=p.hint==UNKNOWN&&readyType==AA;
+   buttonType=temporaryAaButton?AA:p.conflict?UNKNOWN:p.hint;}
  }
  private final HashMap<String,Peer> peers=new HashMap<String,Peer>();
  private static String address(String a){if(a==null||!a.matches("(?i)([0-9a-f]{2}:){5}[0-9a-f]{2}"))throw new IllegalArgumentException("address");return a.toUpperCase(Locale.US);}

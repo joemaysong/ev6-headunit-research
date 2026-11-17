@@ -1,4 +1,4 @@
-# EV6 Head Unit Research - V16 final
+# EV6 Head Unit Research - V17.0.1
 
 Owner-selected reference: **2026.10.18-v16-final**, October 18, 2026 (Asia/Taipei).
 
@@ -10,14 +10,12 @@ identity-verified wired session and finalized after unplug. The owner later
 reported free switching normal. Exact Bluetooth cancellation remains unexercised;
 this is scoped acceptance, with no full Apple/MFi certification claim.
 
-## Experimental integration progress
+## Current release
 
-See the [2026-11-02 session update](docs/19-candidate69-and-session-update.md):
-candidate 69 has offline fixes and a private package, but remains undeployed;
-candidate 67 is retained on the vehicle. Full AA rendering/input and cleanup
-acceptance remain pending. V16 below remains the public reproduction reference.
-The [breathing-light 1.1.2 source](ambient/music-vibe/README.md) includes the
-asynchronous boot-restore fix and a separate build/rollback route.
+The owner promoted candidate102 to **V17.0.1** on 2026-11-18.
+See [maintenance release changes and scoped validation](docs/21-v17-maintenance-release.md).
+V16 below is the historical reproduction reference. The V17 source snapshot is
+an integration delta, not a standalone firmware installer.
 
 ## Reproduce with another Codex workspace
 
@@ -49,4 +47,4 @@ See [retention](docs/13-rollback-and-porting.md) and [publication checks](tools/
 
 ## V17
 
-The owner promoted candidate92 to V17. See [release acceptance and limits](docs/20-v17-release.md), [profile](profiles/v17-release.json) and [integration source](v17/README.md). V16 instructions remain historical and are not a V17 installation recipe.
+Candidate92 is the original V17 baseline; candidate102 is the V17.0.1 maintenance release. See [release acceptance and limits](docs/20-v17-release.md), [profile](profiles/v17-release.json) and [integration source](v17/README.md). V16 instructions remain historical and are not a V17 installation recipe.

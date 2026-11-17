@@ -1,5 +1,7 @@
 # V17 release — candidate92
 
+Historical baseline. The current maintenance release is [V17.0.1](21-v17-maintenance-release.md).
+
 Promoted by the owner on 2026-11-07; no additional vehicle installation is required.
 
 ## Observed acceptance

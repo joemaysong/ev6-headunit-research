@@ -74,7 +74,7 @@ public final class ProjectionDiscoveryService extends Binder {
  private void admitFirstAaWorker(String peer,ProjectionSourceBindings.Binding source){
   try{boolean idle=remoteAdmissionIdle(),paused=aaPause.paused(peer);
    synchronized(this){if(!sources.aaStartEligible(source,peer)||!firstAa.claim(peer,android.os.SystemClock.elapsedRealtime(),idle,paused))return;
-   synchronized(requests){for(java.util.Map.Entry<String,ProjectionSourceBindings.Binding> old:remoteOrigins.entrySet())if(old.getValue()==source&&requests.findManaged(old.getKey(),peer)!=null)return;
+   synchronized(requests){if(requests.outstandingStart(peer)!=null)return;for(java.util.Map.Entry<String,ProjectionSourceBindings.Binding> old:remoteOrigins.entrySet())if(old.getValue()==source&&requests.findManaged(old.getKey(),peer)!=null)return;
     ProjectionAaRequests.Request request=requests.prepare(peer,false);if(!requests.defer(request))throw new IllegalStateException("first-aa-defer");remoteOrigins.put(request.id,source);
    }}
   }catch(Exception unavailable){/* No direct start, AP operation or replacement of a live owner. */}
@@ -84,7 +84,7 @@ public final class ProjectionDiscoveryService extends Binder {
  public static boolean aaStartAllowed(String address){ProjectionDiscoveryService s=instance;if(s==null)return false;try{if(s.aaPause.paused(address))return false;if(ProjectionAaExclusiveProof.allowed(address))return true;
   if(!s.aaIdleSnapshot()||s.otherProjectionActive())return false;
   Scope scope=s.current.get();if(scope==null||!s.sources.aaStartEligible(scope.source,address))return false;
-  synchronized(s.requests){for(java.util.Map.Entry<String,ProjectionSourceBindings.Binding> old:s.remoteOrigins.entrySet())if(old.getValue()==scope.source){ProjectionAaRequests.Request prior=s.requests.findManaged(old.getKey(),address);if(prior!=null)return false;}
+  synchronized(s.requests){if(s.requests.outstandingStart(address)!=null)return false;for(java.util.Map.Entry<String,ProjectionSourceBindings.Binding> old:s.remoteOrigins.entrySet())if(old.getValue()==scope.source){ProjectionAaRequests.Request prior=s.requests.findManaged(old.getKey(),address);if(prior!=null)return false;}
    ProjectionAaRequests.Request request=s.requests.prepare(address,false);if(!s.requests.defer(request))throw new IllegalStateException("remote-aa-defer");s.remoteOrigins.put(request.id,scope.source);
   }return false;
  }catch(Exception unavailable){return false;}}
@@ -203,7 +203,7 @@ public final class ProjectionDiscoveryService extends Binder {
     synchronized(requests){
      ProjectionAaRequests.Request old=requests.findManaged(id,peer);
      if(old!=null)prepared=requests.isDeferred(old)&&remoteOrigins.containsKey(id)&&sources.aaStartEligible(remoteOrigins.get(id),peer)&&!aaPause.paused(peer);
-     else if(requests.deferredRequests().length==0&&!aaPause.paused(peer)&&remoteAdmissionIdle()
+     else if(requests.outstandingStart(peer)==null&&requests.deferredRequests().length==0&&!aaPause.paused(peer)&&remoteAdmissionIdle()
        &&!new java.io.File("/data/local/ev6-projection/handoff/bluetooth-hold").exists()
        &&!new java.io.File("/data/local/ev6-projection/handoff/start-grant").exists()){
       BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();ProjectionSourceBindings.Binding source=sources.aaCandidate(peer);
@@ -239,18 +239,18 @@ public final class ProjectionDiscoveryService extends Binder {
  private boolean deferredTransaction(int code,Parcel data,Parcel reply,int flags)throws RemoteException{
   if(Binder.getCallingUid()!=0||reply==null||(flags&~0x10)!=0)throw new SecurityException("aa-deferred-root");
   data.enforceInterface(DESCRIPTOR);if(data.readInt()!=5)throw new SecurityException("aa-deferred-version");String expected=data.readString();if(!incarnation.equals(expected))throw new SecurityException("aa-deferred-incarnation");
-  if(code==14||code==28){synchronized(requests){for(java.util.Map.Entry<String,ProjectionSourceBindings.Binding> origin:remoteOrigins.entrySet()){ProjectionAaRequests.Request pending=null;for(ProjectionAaRequests.Request candidate:requests.deferredRequests())if(candidate.id.equals(origin.getKey()))pending=candidate;if(pending!=null&&(!sources.aaStartEligible(origin.getValue(),pending.address)||aaPause.paused(pending.address)||!remoteAdmissionIdle()))requests.cancelDeferred(pending);}}if(data.dataAvail()!=0)throw new SecurityException("aa-list-schema");ProjectionAaRequests.Request[] waiting=requests.deferredRequests();reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);reply.writeInt(waiting.length);for(ProjectionAaRequests.Request r:waiting){reply.writeString(r.id);reply.writeString(r.address);if(code==28)reply.writeInt(remoteOrigins.containsKey(r.id)?0:1);}return true;}
+  if(code==14||code==28){synchronized(requests){for(java.util.Map.Entry<String,ProjectionSourceBindings.Binding> origin:remoteOrigins.entrySet()){ProjectionAaRequests.Request pending=null;for(ProjectionAaRequests.Request candidate:requests.deferredRequests())if(candidate.id.equals(origin.getKey()))pending=candidate;if(pending!=null&&(!sources.aaStartEligible(origin.getValue(),pending.address)||(!requests.userSelected(pending)&&(aaPause.paused(pending.address)||!remoteAdmissionIdle()))))requests.cancelDeferred(pending);}}if(data.dataAvail()!=0)throw new SecurityException("aa-list-schema");ProjectionAaRequests.Request[] waiting=requests.deferredRequests();reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);reply.writeInt(waiting.length);for(ProjectionAaRequests.Request r:waiting){reply.writeString(r.id);reply.writeString(r.address);if(code==28)reply.writeInt(remoteOrigins.containsKey(r.id)&&!requests.userSelected(r)?0:1);}return true;}
   String id=data.readString(),address=data.readString();final String lease=data.readString();if(data.dataAvail()!=0)throw new SecurityException("aa-grant-schema");final ProjectionAaRequests.Request r=requests.find(id,address,false);if(r==null)throw new SecurityException("aa-grant-unknown");
   try{
    ProjectionAaDeferredDispatch.execute(requests,r,new ProjectionAaDeferredDispatch.Port(){
     boolean pauseBefore,cleared;
     public void verifyExclusive(String requestId,String peer)throws Exception{
      if(sources.aaCandidate(peer)==null)throw new IllegalStateException("aa-transport-no-longer-ready");
-     ProjectionSourceBindings.Binding origin=remoteOrigins.get(requestId);if(origin!=null&&(!sources.aaStartEligible(origin,peer)||aaPause.paused(peer)))throw new IllegalStateException("aa-request-source-retired");
+     ProjectionSourceBindings.Binding origin=remoteOrigins.get(requestId);if(origin!=null&&(!sources.aaStartEligible(origin,peer)||(!requests.userSelected(r)&&aaPause.paused(peer))))throw new IllegalStateException("aa-request-source-retired");
      ProjectionAaExclusiveProof.verify(requestId,peer,lease);BluetoothAdapter b=BluetoothAdapter.getDefaultAdapter();if(b==null||b.getRemoteDevice(peer).getBondState()!=BluetoothDevice.BOND_BONDED)throw new IllegalStateException("aa-grant-unpaired");
      Object pp=owner.getSystemService("phoneprojection");String cp=(String)call(pp,"getCPConnectedBTAddress");if(cp!=null&&cp.length()>0)throw new IllegalStateException("aa-grant-cp-active");if(!aaIdleSnapshot())throw new IllegalStateException("aa-grant-not-idle");
     }
-    public void clearManualPause(String peer)throws Exception{pauseBefore=aaPause.paused(peer);if(remoteOrigins.containsKey(r.id)){if(pauseBefore)throw new IllegalStateException("remote-aa-manually-ended");return;}aaPause.manualIntent(peer,false);cleared=true;}
+    public void clearManualPause(String peer)throws Exception{pauseBefore=aaPause.paused(peer);if(remoteOrigins.containsKey(r.id)&&!requests.userSelected(r)){if(pauseBefore)throw new IllegalStateException("remote-aa-manually-ended");return;}aaPause.manualIntent(peer,false);cleared=true;}
     public void restoreManualPause(String peer)throws Exception{if(cleared)aaPause.manualIntent(peer,pauseBefore);}
     public Object invoke(final String peer)throws Exception{
      final Object pp=owner.getSystemService("phoneprojection");dispatching.set(r);
@@ -273,6 +273,16 @@ public final class ProjectionDiscoveryService extends Binder {
   boolean saved=model.verifiedSessionHint(peer,ProjectionDiscovery.AA);
   reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);reply.writeInt(saved?1:0);return true;
  }
+ private ProjectionSourceBindings.Binding checkAaSelection(String address,boolean disconnect){
+  ProjectionDiscovery.Snapshot selected=model.snapshot(address);
+  BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();
+  if(selected==null||adapter==null||adapter.getRemoteDevice(address).getBondState()!=BluetoothDevice.BOND_BONDED
+      ||selected.displayType!=ProjectionDiscovery.AA||(!disconnect&&selected.buttonType!=ProjectionDiscovery.AA))throw new SecurityException("aa-selection");
+  if(disconnect||!selected.temporaryAaButton)return null;
+  ProjectionSourceBindings.Binding source=sources.aaCandidate(address);
+  if(source==null)throw new SecurityException("aa-transport-no-longer-ready");
+  return source;
+ }
  protected boolean onTransact(int code,Parcel data,Parcel reply,int flags)throws RemoteException{
   if(code==30)return aaSessionHint(data,reply,flags);
   if(code==29){if(Binder.getCallingUid()!=0||reply==null||(flags&~0x10)!=0)throw new SecurityException("aa-pause-root");data.enforceInterface(DESCRIPTOR);if(data.readInt()!=5||!incarnation.equals(data.readString()))throw new SecurityException("aa-pause-generation");String peer=data.readString();if(peer==null||!peer.matches("(?:[0-9A-F]{2}:){5}[0-9A-F]{2}")||data.dataAvail()!=0)throw new SecurityException("aa-pause-peer");reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);reply.writeInt(aaPause.paused(peer)?1:0);return true;}
@@ -286,7 +296,15 @@ public final class ProjectionDiscoveryService extends Binder {
   if(code!=1&&code!=2&&code!=3&&code!=4&&code!=5&&code!=6)return super.onTransact(code,data,reply,flags);
   if(Binder.getCallingUid()!=1000||(flags&~0x10)!=0||reply==null)throw new SecurityException("discovery-reader");
   data.enforceInterface(DESCRIPTOR);if(data.readInt()!=5)throw new SecurityException("discovery-version");final String address=data.readString();boolean commandApi=code==2||code==4||code==5||code==6;int action=commandApi?data.readInt():0;String expected=commandApi?data.readString():null;String id=(code==2||code==4||code==6)?data.readString():null;final boolean disconnect=action==1;if((commandApi&&(action<0||action>1||!incarnation.equals(expected)))||data.dataAvail()!=0)throw new SecurityException("discovery-request");
-  if(code==5){ProjectionDiscovery.Snapshot selected=model.snapshot(address);BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();if(selected==null||selected.displayType!=ProjectionDiscovery.AA||adapter==null||adapter.getRemoteDevice(address).getBondState()!=BluetoothDevice.BOND_BONDED)throw new SecurityException("aa-selection");ProjectionAaRequests.Request prepared=requests.prepare(address,disconnect);reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);reply.writeString(prepared.id);return true;}
+  if(code==5){
+   ProjectionSourceBindings.Binding source=checkAaSelection(address,disconnect);
+   ProjectionAaRequests.Request prepared;
+   synchronized(requests){
+    prepared=disconnect?null:requests.outstandingStart(address);
+    if(prepared==null)prepared=requests.prepare(address,disconnect,source);
+   }
+   reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);reply.writeString(prepared.id);return true;
+  }
   requests.expireDeferred();
   final ProjectionAaRequests.Request owned=commandApi&&code!=5?requests.find(id,address,disconnect):null;
   if(code==6&&owned==null){reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);for(long part:new long[]{0,0,1,1})reply.writeLong(part);return true;}
@@ -297,13 +315,22 @@ public final class ProjectionDiscoveryService extends Binder {
    reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);for(long part:exact)reply.writeLong(part);return true;
   }
   if(code==2){
-   ProjectionDiscovery.Snapshot selected=model.snapshot(address);BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();
-   if(selected==null||selected.displayType!=ProjectionDiscovery.AA||adapter==null||adapter.getRemoteDevice(address).getBondState()!=BluetoothDevice.BOND_BONDED)throw new SecurityException("aa-selection");
+   checkAaSelection(address,disconnect);
    try{final Object pp=owner.getSystemService("phoneprojection");
     if(disconnect&&!address.equalsIgnoreCase((String)call(pp,"getAAConnectedBTAddress")))throw new SecurityException("aa-disconnect-target");
     // Explicit START is retained before pause mutation or OEM effects. A coordinator must
     // obtain the exact target exclusive lease before dispatching this retained request.
-    if(!disconnect){requests.defer(owned);reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);reply.writeLong(0);return true;}
+    if(!disconnect){
+     synchronized(requests){
+      ProjectionSourceBindings.Binding origin=remoteOrigins.get(owned.id);
+      if(origin==null)origin=(ProjectionSourceBindings.Binding)owned.selectionSource;
+      if(origin!=null&&!sources.aaStartEligible(origin,address))throw new SecurityException("aa-request-source-retired");
+      // A dispatched request is already being handled. A click observes the same ID.
+      if(requests.selectStart(owned)&&origin!=null)remoteOrigins.put(owned.id,origin);
+     }
+     ProjectionAaEntries.Ticket ticket=(ProjectionAaEntries.Ticket)owned.ticket();
+     reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);reply.writeLong(ticket==null?0:ticket.sequence);return true;
+    }
     if(!requests.start(owned)){ProjectionAaEntries.Ticket prior=(ProjectionAaEntries.Ticket)owned.ticket();reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);reply.writeLong(prior==null?0:prior.sequence);return true;}
     try{aaPause.manualIntent(address,disconnect);}catch(Exception commitFailed){if(!requests.cancelBeforeEffects(owned))throw new IllegalStateException("pause-noeffect-unverified");throw commitFailed;}
     dispatching.set(owned);
@@ -315,9 +342,17 @@ public final class ProjectionDiscoveryService extends Binder {
    }catch(Exception failed){throw new RemoteException("aa-dispatch-outcome-unknown");}finally{dispatching.remove();}
   }
   if(code==3){long[] receipt=entries.snapshot(address);reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);for(long part:receipt)reply.writeLong(part);return true;}
-  ProjectionDiscovery.Snapshot value=model.snapshot(address);int display=value==null?0:value.buttonType;
+  ProjectionDiscovery.Snapshot value=model.snapshot(address);
+  int display=value==null?0:value.buttonType;
+  boolean temporary=display==ProjectionDiscovery.AA&&value.temporaryAaButton;
+  if(temporary&&sources.aaCandidate(address)==null)display=0;
+  int lifecycle=display==ProjectionDiscovery.AA?aaState(address):-1;
+  boolean joinable=temporary&&display==ProjectionDiscovery.AA&&lifecycle==0&&requests.joinableAutomaticStart(address);
   reply.writeNoException();reply.writeInt(5);reply.writeString(incarnation);
   // Preserve the UI owner's WL namespace: AA1/CP2, distinct from launch command types.
-  reply.writeInt(display==ProjectionDiscovery.CP?2:display==ProjectionDiscovery.AA?1:0);reply.writeInt(display==ProjectionDiscovery.AA?aaState(address):-1);reply.writeInt(value!=null&&value.linkUp?1:0);return true;
+  reply.writeInt(display==ProjectionDiscovery.CP?2:display==ProjectionDiscovery.AA?1:0);
+  reply.writeInt(lifecycle);
+  // Link flag 2 marks a fresh AA button whose automatic START can be joined.
+  reply.writeInt(joinable?2:value!=null&&value.linkUp?1:0);return true;
  }
 }

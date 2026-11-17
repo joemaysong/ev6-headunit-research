@@ -271,7 +271,13 @@ public final class ProjectionExclusiveRuntime implements ProjectionExclusiveCoor
    }
   }
   if(coordinator.phase()==ProjectionExclusiveCoordinator.Phase.WAIT_START&&coordinator.type()==1&&!c.exclusivePreparationActive()&&oldProjectionDrained(coordinator.requestId()))cancelCurrent();
-  if(coordinator.type()==2&&aaRequest!=null&&coordinator.phase()!=ProjectionExclusiveCoordinator.Phase.DRAIN&&coordinator.phase()!=ProjectionExclusiveCoordinator.Phase.RELEASE_INTENT&&coordinator.phase()!=ProjectionExclusiveCoordinator.Phase.WAIT_RELEASE&&coordinator.phase()!=ProjectionExclusiveCoordinator.Phase.DONE&&aa.ended(aaRequest))cancelCurrent();
+  if(coordinator.type()==2&&aaRequest!=null&&coordinator.phase()!=ProjectionExclusiveCoordinator.Phase.DRAIN&&coordinator.phase()!=ProjectionExclusiveCoordinator.Phase.RELEASE_INTENT&&coordinator.phase()!=ProjectionExclusiveCoordinator.Phase.WAIT_RELEASE&&coordinator.phase()!=ProjectionExclusiveCoordinator.Phase.DONE&&aa.ended(aaRequest)){
+   if(coordinator.phase()==ProjectionExclusiveCoordinator.Phase.WAIT_START){
+    diagnostic("aa-start-ended","aa-start-completed-without-projection",true);
+    c.commandStage("rejected","aa-start-completed-without-projection");
+   }
+   cancelCurrent();
+  }
   if(coordinator.type()==2&&aaRequest!=null&&coordinator.phase()==ProjectionExclusiveCoordinator.Phase.DRAIN)aa.requestStatus(aaRequest,19);
   if(coordinator.phase()==ProjectionExclusiveCoordinator.Phase.DRAIN&&(coordinator.type()==1||(aaRequest!=null&&aa.ended(aaRequest))))files.revokeStart(coordinator.requestId(),coordinator.predecessor(),coordinator.requestBoot());
   // Native stop may finish several polls after CONNECTED has already entered

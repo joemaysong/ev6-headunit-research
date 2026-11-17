@@ -19,7 +19,10 @@ public final class ProjectionAaLeaseCompletion {
  // never replays cancelWifiConnection against a replacement transport.
  boolean release()throws Exception{
   synchronized(service){
-   if(neverEnteredOnly&&!ProjectionAaServiceProof.stopNeverEntered(service,request))return false;
+   // OEM teardown may finish after cancellation could no longer capture it.
+   // Accept only the positive completion for this exact service and request.
+   if(neverEnteredOnly&&!ProjectionAaReceiverStop.completed(service,request)
+     &&!ProjectionAaServiceProof.stopNeverEntered(service,request))return false;
    if(field(service,"mWifiTransport")!=null||field(service,"mGalReceiver")!=null||field(service,"mUsbTransport")!=null
      ||((Integer)call(service,"getGpmConnectMode")).intValue()!=0)return false;
    int state=((Integer)call(service,"getGpmStatus")).intValue();if(state!=1&&state!=2)return false;
@@ -38,8 +41,10 @@ public final class ProjectionAaLeaseCompletion {
     Object store=field(request,"store");
     // Resolve all producer fields before changing durable ownership.
     Field q=member(producer,"wirelessRequest"),t=member(producer,"wireless"),a=member(producer,"wirelessAddress"),p=member(producer,"wirelessPreparation"),c=member(producer,"wirelessCommitted");
+    Method receipt=producer.getMethod("recordReleasedWireless",request.getClass());
     Method release=store.getClass().getMethod("releaseCompletedAa",ticket.getClass());
     if(!((Boolean)release.invoke(store,ticket)).booleanValue())return false;
+    receipt.invoke(null,request);
     if(bound==request)bindings.remove(service);
     ProjectionAaServiceProof.forget(request);
     ProjectionAaReceiverStop.forget(request);

@@ -72,12 +72,29 @@ public final class ProjectionIncomingGuard {
  }
  private static final String CP_ATTACH="android.hardware.usb.action.CARPLAY_DEVICE_ATTACHED";
  private static final String HAND="/data/local/ev6-projection/handoff/";
+ private static boolean aaHostReceiver(Object receiver,String action){
+  return action.startsWith("android.hardware.usb.action.USB_DEVICE_")
+      && receiver.getClass().getName().equals("com.google.android.projection.service.StartReceiver");
+ }
  private static boolean supportedAttach(Object receiver,String action){
   String name=receiver.getClass().getName();
   if(CP_ATTACH.equals(action))return name.equals("com.tcc.iap2server.Iap2Service$1")
       || name.equals("com.daudio.app.dipo.service.DipoService$34");
-  return "android.hardware.usb.action.USB_DEVICE_ATTACHED".equals(action)
-      && name.equals("com.google.android.projection.service.StartReceiver");
+  return "android.hardware.usb.action.USB_DEVICE_ATTACHED".equals(action)&&aaHostReceiver(receiver,action);
+ }
+ // Android 4.4 exposes stat through libcore. Linux can reuse a USB address
+ // after returning to host mode, but the recreated device node has a new inode.
+ private static String hostGeneration(String identity)throws Exception{
+  if(identity==null||!identity.matches("USB:/dev/bus/usb/[0-9]{3}/[0-9]{3}:[0-9]+:[0-9]+:[0-9]+"))return "";
+  String path=identity.split(":",3)[1];
+  try{
+   Object os=Class.forName("libcore.io.Libcore").getField("os").get(null);
+   Object stat=Class.forName("libcore.io.Os").getMethod("stat",String.class).invoke(os,path);
+   Class<?> fields=stat.getClass();
+   long inode=fields.getField("st_ino").getLong(stat);
+   if(inode<=0)return "";
+   return hash(fields.getField("st_dev").getLong(stat)+":"+inode+":"+fields.getField("st_ctime").getLong(stat));
+  }catch(Exception unavailable){return "";}
  }
  private static boolean present(Context c,String action,String identity,String[] role)throws Exception{
   if(identity==null)return false;
@@ -102,7 +119,7 @@ public final class ProjectionIncomingGuard {
   if(!present(c,intent.getAction(),identity,roleSnapshot()))return;
   String id=row.length==3 && receipt(row,currentBoot,row[1],"DRAIN") ? row[1] : heldRequest(currentBoot);
   if(id==null)return;
-  pending=new Pending(receiver,c,intent,currentBoot,id,identity);
+  pending=new Pending(receiver,c,intent,currentBoot,id,identity,aaHostReceiver(receiver,intent.getAction())?hostGeneration(identity):"");
   pending.start();
   pending.check();
  }
@@ -112,11 +129,11 @@ public final class ProjectionIncomingGuard {
       && h[2].matches("[0-9a-f]{32}") && "END".equals(h[6]) ? h[2] : null;
  }
  private static final class Pending extends Thread{
-  final Object receiver;final Context context;final Intent intent;final String bootId,request,identity;
+  final Object receiver;final Context context;final Intent intent;final String bootId,request,identity,generation;
   boolean posted;
-  Pending(Object receiver,Context c,Intent intent,String boot,String request,String identity){
+  Pending(Object receiver,Context c,Intent intent,String boot,String request,String identity,String generation){
    super("ev6-wired-handover");
-   this.receiver=receiver;context=c;this.intent=intent;bootId=boot;this.request=request;this.identity=identity;
+   this.receiver=receiver;context=c;this.intent=intent;bootId=boot;this.request=request;this.identity=identity;this.generation=generation;
   }
   public void run(){
    try{
@@ -145,6 +162,7 @@ public final class ProjectionIncomingGuard {
   }
   boolean eligible(String[] row)throws Exception{
    return (pending==this||replaying==this) && bootId.equals(boot()) && present(context,intent.getAction(),identity,roleSnapshot())
+       && (generation.isEmpty()||generation.equals(hostGeneration(identity)))
        && !new java.io.File("/data/local/ev6-projection/maintenance").exists()
        && (receipt(row,bootId,request,"DRAIN")||receipt(row,bootId,request,"WAIT_RELEASE")
            ||receipt(row,bootId,request,"RELEASE_INTENT")||receipt(row,bootId,request,"DONE"));
@@ -213,34 +231,51 @@ public final class ProjectionIncomingGuard {
   }
   java.io.File f=new java.io.File(dir,key);
   if(new java.io.File(f.getPath()+".next").exists())return false;
-  String old=read(f),admitted="EV6USB1|"+boot+"|ADMITTED",ended="EV6USB1|"+boot+"|ENDED";
-  if(old==null||(!old.equals("")&&!old.matches("EV6USB1\\|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\\|(ADMITTED|ENDED|REJECTED)")))return false;
-  if(!attach){boolean owned=admitted.equals(old);
+  String old=read(f);
+  boolean aaHost=aaHostReceiver(receiver,a);
+  if(old==null)return false;
+  String[] previous=old.split("\\|",-1);
+  boolean tracked=aaHost&&previous.length==4&&"EV6USB2".equals(previous[0])&&previous[2].matches("[0-9a-f]{64}");
+  String bootPattern="[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}";
+  if(!old.isEmpty()&&!((tracked||(previous.length==3&&"EV6USB1".equals(previous[0])))
+      &&previous[1].matches(bootPattern)&&old.matches(".*\\|(ADMITTED|ENDED|REJECTED)")))return false;
+  boolean sameBoot=!old.isEmpty()&&boot.equals(previous[1]);
+  String generation=aaHost?hostGeneration(identity):"";
+  boolean exactHost=aaHost&&identity!=null&&hash(identity).equals(liveTopology);
+  String prefix=attach&&!generation.isEmpty()?"EV6USB2|"+boot+"|"+generation+"|":"EV6USB1|"+boot+"|";
+  if(!attach){boolean owned=sameBoot&&old.endsWith("|ADMITTED");
+   String ended=tracked?"EV6USB2|"+boot+"|"+previous[2]+"|ENDED":prefix+"ENDED";
+   if(tracked&&sameBoot&&exactHost)return false; // A live node can have a delayed detach with the same address.
    // A foreign/late detach must not consume the live receipt before validation.
    if(owned){if(!ownerValid||!fields[2].equals(key)||!endedOwnerSafe(c,wiredRoleProof))return false;
     if(fields[3].startsWith("R")&&!wiredRoleProof)return false;
     write(f,ended);return true;}
-   if(("EV6USB1|"+boot+"|REJECTED").equals(old))write(f,ended);return false;
+   if(sameBoot&&old.endsWith("|REJECTED"))write(f,ended);return false;
   }
   // Duplicate events may never convert an old rejection or consumed detach into new authority.
   boolean retry=replaying!=null && receiver==replaying.receiver && intent==replaying.intent
       && boot.equals(replaying.bootId) && identity.equals(replaying.identity)
       && receipt(coordinator(),boot,replaying.request,"DONE") && present(c,a,identity,role)
-      && ("EV6USB1|"+boot+"|REJECTED").equals(old);
+      && sameBoot && old.endsWith("|REJECTED") && (!tracked||generation.equals(previous[2]));
   if(replaying!=null&&!retry)return false;
-  if(!retry&&old!=null&&old.startsWith("EV6USB1|"+boot+"|")&&!ended.equals(old)&&!(old.endsWith("|REJECTED")&&emptySeen&&liveTopology.matches("[0-9a-f]{64}")))return false;
+  if(aaHost&&!generation.isEmpty()&&!exactHost)return false;
+  if(!retry&&sameBoot){
+   if(tracked){
+    if(!exactHost||generation.isEmpty()||generation.equals(previous[2]))return false;
+   }else if(!old.endsWith("|ENDED")&&!(old.endsWith("|REJECTED")&&emptySeen&&liveTopology.matches("[0-9a-f]{64}")))return false;
+  }
   if(!idle){
-   write(f,"EV6USB1|"+boot+"|REJECTED");
+   write(f,prefix+"REJECTED");
    if(replaying==null && supportedAttach(receiver,a) && present(c,a,identity,role))arm(receiver,c,intent,boot);
    return false;
   }
   String physical="-";try{String t=topology(c);if(t.matches("[0-9a-f]{64}"))physical=t;}catch(Exception unavailable){/* Identified detach remains possible; anonymous detach must fail closed. */}
   if(physical.equals("-")&&liveTopology.equals("EMPTY")&&family.equals("android.hardware.usb.action.CARPLAY_DEVICE_")&&cpRole(role[0])&&"CONFIGURED".equals(role[1])&&identity.equals("SERIAL:"+role[2]))physical="R"+hash(identity);
   write(ownerFile,"EV6USBF2|"+boot+"|"+key+"|"+physical);
-  if(!usbIdle(c)||(retry&&!replaying.eligible(coordinator()))){write(f,"EV6USB1|"+boot+"|REJECTED");return false;}
-  write(f,admitted);
+  if(!usbIdle(c)||(retry&&!replaying.eligible(coordinator()))||(!generation.isEmpty()&&!generation.equals(hostGeneration(identity)))){write(f,prefix+"REJECTED");return false;}
+  write(f,prefix+"ADMITTED");
   // Recheck after disk publication too: slow I/O is not permission to preempt a new owner.
-  if(!usbIdle(c)||(retry&&!replaying.eligible(coordinator()))){write(f,"EV6USB1|"+boot+"|REJECTED");return false;}
+  if(!usbIdle(c)||(retry&&!replaying.eligible(coordinator()))||(!generation.isEmpty()&&!generation.equals(hostGeneration(identity)))){write(f,prefix+"REJECTED");return false;}
   return true;
   }finally{if(lock!=null)lock.release();lockHandle.close();}
  }
